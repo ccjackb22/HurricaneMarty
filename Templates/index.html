@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pelée AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #1a1a1a;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+        .container {
+            background-color: #2a2a2a;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+        }
+        .logo {
+            max-width: 200px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #1a73e8;
+            margin-bottom: 20px;
+        }
+        .search-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #444;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 300;
+            background-color: #333;
+            color: #e0e0e0;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus {
+            border-color: #1a73e8;
+        }
+        button {
+            padding: 12px 24px;
+            background-color: #1a73e8;
+            color: #e0e0e0;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 400;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #1557b0;
+        }
+        .error {
+            color: #ff4d4d;
+            margin-top: 10px;
+            font-size: 0.8em;
+            font-weight: 300;
+        }
+        .download {
+            margin-top: 20px;
+            font-size: 0.8em;
+            font-weight: 300;
+        }
+        .download a {
+            color: #1a73e8;
+            text-decoration: none;
+            font-weight: 400;
+        }
+        .download a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="/static/Pelee_AI_Logo.png" alt="Pelée AI Logo" class="logo">
+        <h1>Pelée AI</h1>
+        <form method="POST" class="search-form">
+            <input type="text" name="query" placeholder="e.g., McDonald's in Cleveland Ohio" required>
+            <button type="submit">Search</button>
+        </form>
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+        {% if download_file %}
+            <div class="download">
+                <p>Results ready! <a href="{{ url_for('download_file', filename=download_file) }}">Download CSV</a></p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

@@ -48,11 +48,11 @@ footer { margin-top: 2rem; padding: 1rem; font-size: 0.85rem; color: #fff; backg
 </header>
 
 <div class="search-box">
-  <input type="text" id="query" placeholder="Enter ZIP or query (e.g. Homes in 33101 over $400k)">
+  <input type="text" id="query" placeholder="Enter city or ZIP (e.g. Miami over $400k)">
   <button onclick="runSearch()">Search</button>
 </div>
 <p class="examples">
-Examples: "Homes in ZIP 33101", "Homes over $400k in 90210"
+Examples: "Homes in Miami over $400k", "Homes in Orlando over $300k"
 </p>
 
 <p id="loading">Generating homes, please wait... 🌪️🌴</p>
@@ -119,7 +119,6 @@ async function runSearch() {
 
 function downloadCSV(){ window.location.href="/download"; }
 
-// Trigger search on Enter key
 document.getElementById("query").addEventListener("keypress", function(e){
   if(e.key==="Enter"){ runSearch(); }
 });

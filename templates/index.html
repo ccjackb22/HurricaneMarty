@@ -9,21 +9,32 @@
     /* --- General Body & Colors --- */
     body {
       font-family: 'Space Grotesk', sans-serif;
-      background: linear-gradient(to bottom, #87ceeb 0%, #1f6feb 100%);
+      background: url('/static/hurricane_marty_Background.jpg') no-repeat center center fixed;
+      background-size: cover;
       color: #fff;
       margin: 0;
       padding: 0;
       text-align: center;
+      overflow-x: hidden;
+    }
 
-      /* ✅ Local background image */
-      background-image: url('/static/hurricane_marty_Background.jpg');
-      background-repeat: repeat;
-      background-size: 80px;
+    /* --- Floating debris animation --- */
+    .debris {
+      position: absolute;
+      font-size: 1.5rem;
+      animation: float 10s linear infinite;
+    }
+
+    @keyframes float {
+      0% {transform: translateY(-10px) rotate(0deg);}
+      50% {transform: translateY(300px) rotate(180deg);}
+      100% {transform: translateY(-10px) rotate(360deg);}
     }
 
     header {
       padding: 2rem 1rem;
       text-shadow: 2px 2px #000000aa;
+      position: relative;
     }
 
     h1 {
@@ -31,6 +42,13 @@
       font-family: 'Fredoka One', cursive;
       font-size: 3rem;
       color: #ffdd57;
+      animation: shake 1s infinite;
+    }
+
+    @keyframes shake {
+      0% { transform: rotate(-2deg); }
+      50% { transform: rotate(2deg); }
+      100% { transform: rotate(-2deg); }
     }
 
     p.tagline {
@@ -47,6 +65,8 @@
       justify-content: center;
       align-items: center;
       gap: 0.5rem;
+      position: relative;
+      z-index: 2;
     }
 
     input[type="text"] {
@@ -80,7 +100,7 @@
     }
 
     button:hover {
-      transform: scale(1.05) rotate(-3deg);
+      transform: scale(1.1) rotate(-5deg);
       box-shadow: 0 0 25px #ff6f61ff;
     }
 
@@ -100,6 +120,8 @@
       border-radius: 10px;
       overflow: hidden;
       box-shadow: 0 0 20px #00000088;
+      position: relative;
+      z-index: 2;
     }
 
     th, td {
@@ -122,12 +144,16 @@
       margin-top: 1rem;
       font-style: italic;
       color: #fff0aa;
+      position: relative;
+      z-index: 2;
     }
 
     #disclaimer {
       margin-top: 0.75rem;
       font-size: 0.9rem;
       color: #fff0aa;
+      position: relative;
+      z-index: 2;
     }
 
     footer {
@@ -136,6 +162,8 @@
       font-size: 0.85rem;
       color: #ffe680;
       text-shadow: 1px 1px #000000aa;
+      position: relative;
+      z-index: 2;
     }
   </style>
 </head>
@@ -144,6 +172,14 @@
     <h1>🌪 Hurricane Marty 🌪</h1>
     <p class="tagline">Track homes at risk, explore values, and export data with flair!</p>
   </header>
+
+  <!-- Floating debris emojis -->
+  <div class="debris" style="left: 5%;">🌴</div>
+  <div class="debris" style="left: 20%; animation-duration: 12s;">🏠</div>
+  <div class="debris" style="left: 35%; animation-duration: 8s;">🌬️</div>
+  <div class="debris" style="left: 50%; animation-duration: 10s;">🌪️</div>
+  <div class="debris" style="left: 65%; animation-duration: 14s;">☔</div>
+  <div class="debris" style="left: 80%; animation-duration: 11s;">🌴</div>
 
   <div class="search-box">
     <input type="text" id="query" placeholder="e.g. Homes in ZIP 33101 or over $400k in 90210">
@@ -176,7 +212,7 @@
   </p>
 
   <footer>
-    © <span id="year"></span> Hurricane Marty Inc. — All rights reserved.
+    © <span id="year"></span> Pelee LLC — All rights reserved.
   </footer>
 
   <script>

@@ -3,105 +3,153 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pelée | Data Export Tool</title>
+  <title>Hurricane Marty | Home Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Space+Grotesk:wght@300;400;700&display=swap" rel="stylesheet">
   <style>
+    /* --- General Body & Colors --- */
     body {
-      font-family: Arial, sans-serif;
-      background-color: #0d1117;
-      color: #e6edf3;
+      font-family: 'Space Grotesk', sans-serif;
+      background: linear-gradient(to bottom, #87ceeb 0%, #1f6feb 100%);
+      color: #fff;
       margin: 0;
       padding: 0;
       text-align: center;
+      background-image: url('https://i.imgur.com/3cQjL5F.png'); /* subtle hurricane icon pattern */
+      background-repeat: repeat;
+      background-size: 80px;
     }
+
     header {
-      padding: 1.5rem 1rem;
+      padding: 2rem 1rem;
+      text-shadow: 2px 2px #000000aa;
     }
+
     h1 {
       margin: 0;
-      font-size: 2rem;
+      font-family: 'Fredoka One', cursive;
+      font-size: 3rem;
+      color: #ffdd57;
     }
+
     p.tagline {
-      margin-top: 0.25rem;
-      color: #8b949e;
+      margin-top: 0.5rem;
+      font-size: 1.2rem;
+      color: #ffefb0;
     }
+
+    /* --- Search Box --- */
     .search-box {
-      margin: 1rem auto;
+      margin: 2rem auto;
       max-width: 600px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
     }
+
     input[type="text"] {
       width: 70%;
       padding: 0.75rem;
-      border-radius: 8px;
-      border: none;
+      border-radius: 25px;
+      border: 2px solid #fff;
       outline: none;
       font-size: 1rem;
+      text-align: center;
+      background-color: rgba(255,255,255,0.2);
+      color: #fff;
+      transition: background 0.3s;
     }
+
+    input[type="text"]:focus {
+      background-color: rgba(255,255,255,0.4);
+    }
+
     button {
       padding: 0.75rem 1.25rem;
-      margin-left: 0.5rem;
       border: none;
-      border-radius: 8px;
-      background-color: #1f6feb;
+      border-radius: 25px;
+      background-color: #ff6f61;
       color: #fff;
       cursor: pointer;
       font-size: 1rem;
+      font-weight: bold;
+      box-shadow: 0 0 15px #ff6f61aa;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
+
     button:hover {
-      background-color: #388bfd;
+      transform: scale(1.05) rotate(-3deg);
+      box-shadow: 0 0 25px #ff6f61ff;
     }
+
     .examples {
       margin-top: 0.75rem;
       font-size: 0.95rem;
-      color: #8b949e;
+      color: #ffe680;
     }
+
+    /* --- Table --- */
     table {
-      margin: 1.5rem auto;
+      margin: 2rem auto;
       border-collapse: collapse;
       width: 90%;
       max-width: 1000px;
-      background: #161b22;
+      background: rgba(0,0,0,0.7);
       border-radius: 10px;
       overflow: hidden;
+      box-shadow: 0 0 20px #00000088;
     }
+
     th, td {
-      border: 1px solid #30363d;
+      border: 1px solid #ffffff33;
       padding: 0.75rem;
       text-align: left;
     }
+
     th {
-      background-color: #21262d;
+      background-color: #ff6f61;
+      color: #000;
+      text-transform: uppercase;
     }
+
+    td {
+      color: #fff;
+    }
+
     #results-count {
       margin-top: 1rem;
       font-style: italic;
-      color: #8b949e;
+      color: #fff0aa;
     }
+
     #disclaimer {
       margin-top: 0.75rem;
       font-size: 0.9rem;
-      color: #8b949e;
+      color: #fff0aa;
     }
+
     footer {
       margin-top: 2rem;
       padding: 1rem;
       font-size: 0.85rem;
-      color: #8b949e;
+      color: #ffe680;
+      text-shadow: 1px 1px #000000aa;
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>Pelée | Data Export Tool</h1>
-    <p class="tagline">AI-powered business data discovery, fast and easy.</p>
+    <h1>🌪 Hurricane Marty 🌪</h1>
+    <p class="tagline">Track homes at risk, explore values, and export data with flair!</p>
   </header>
 
   <div class="search-box">
-    <input type="text" id="query" placeholder="Enter your search (e.g. McDonalds in Cleveland)">
+    <input type="text" id="query" placeholder="e.g. Homes in ZIP 33101 or over $400k in 90210">
     <button onclick="runSearch()">Search</button>
   </div>
 
   <p class="examples">
-    Examples: "Coffee shops in Palo Alto", "Pharmacies in Sunnyvale", "Restaurants within 10 miles of Mountain View"
+    Examples: "Homes in ZIP 33101", "Homes over $400k in 90210", "Homes impacted by hurricane in 10001"
   </p>
 
   <p id="results-count"></p>
@@ -109,11 +157,10 @@
   <table id="results-table" style="display: none;">
     <thead>
       <tr>
-        <th>Name</th>
         <th>Address</th>
-        <th>Phone</th>
-        <th>Website</th>
-        <th>Hours</th>
+        <th>Latitude</th>
+        <th>Longitude</th>
+        <th>AI Notes</th>
       </tr>
     </thead>
     <tbody id="results-body"></tbody>
@@ -123,11 +170,11 @@
 
   <p id="disclaimer" style="display: none;">
     Free users see up to 5 preview rows. CSV export includes up to 20 rows.  
-    Unlock unlimited results with Pelée+.
+    Upgrade for unlimited searches!
   </p>
 
   <footer>
-    AI-powered · © <span id="year"></span> Pelée LLC — All rights reserved.
+    © <span id="year"></span> Hurricane Marty Inc. — All rights reserved.
   </footer>
 
   <script>
@@ -156,11 +203,10 @@
       data.preview.forEach(row => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${row.Name}</td>
           <td>${row.Address}</td>
-          <td>${row.Phone}</td>
-          <td>${row.Website !== "N/A" ? `<a href="${row.Website}" target="_blank">Website</a>` : "N/A"}</td>
-          <td>${row.Hours}</td>
+          <td>${row.Latitude}</td>
+          <td>${row.Longitude}</td>
+          <td>${row.AI_Filtered || ''}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -177,11 +223,9 @@
     // Auto year in footer
     document.getElementById("year").innerText = new Date().getFullYear();
 
-    // ✅ Trigger search on Enter key
+    // Trigger search on Enter key
     document.getElementById("query").addEventListener("keypress", function (e) {
-      if (e.key === "Enter") {
-        runSearch();
-      }
+      if (e.key === "Enter") runSearch();
     });
   </script>
 </body>

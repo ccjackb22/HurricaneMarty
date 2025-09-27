@@ -24,7 +24,7 @@ def search():
         return jsonify({"error": "No query provided"}), 400
 
     try:
-        # --- Step 1: Parse user query for ZIP code and price ---
+        # Step 1: Parse user query for ZIP code and price
         messages = [
             {"role": "system", "content": "Extract ZIP codes and min/max price from user query."},
             {"role": "user", "content": f'Query: "{query}". Return JSON: zip_codes (list), min_price (int or null), max_price (int or null).'}
@@ -44,28 +44,33 @@ def search():
 
         final_data = []
 
-        # --- Step 2: Pull addresses from OpenStreetMap ---
+        # Step 2: Pull addresses from OpenStreetMap
         for zip_code in zip_codes:
             osm_url = f"https://nominatim.openstreetmap.org/search?postalcode={zip_code}&country=USA&format=json&addressdetails=1"
             osm_response = requests.get(osm_url, headers={"User-Agent": "PeleeAI/1.0"})
             locations = osm_response.json()
 
             for loc in locations:
-                # --- Step 3: Generate multiple demo homes per OSM location ---
-                for i in range(100):  # Generate 100 homes per OSM location
-                    # Ask GPT for rough estimated price
-                    estimate_prompt = f"Provide a rough estimate price in USD for a typical residential home at {loc.get('display_name')} in this area. Return only a number."
-                    try:
-                        price_response = openai.ChatCompletion.create(
-                            model="gpt-3.5-turbo",
-                            messages=[{"role": "user", "content": estimate_prompt}],
-                            temperature=0
-                        )
-                        estimated_price = int(''.join(filter(str.isdigit, price_response.choices[0].message.content)))
-                    except:
-                        estimated_price = random.randint(200000, 800000)
+                # Step 3: Ask GPT for 100 rough estimated prices in one batch
+                estimate_prompt = (
+                    f"Provide 100 rough estimated prices in USD for typical residential homes "
+                    f"in the area of {loc.get('display_name')}. Return as a JSON array of numbers only."
+                )
+                try:
+                    price_response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[{"role": "user", "content": estimate_prompt}],
+                        temperature=0
+                    )
+                    prices = json.loads(price_response.choices[0].message.content.strip())
+                    if not isinstance(prices, list):
+                        raise ValueError("GPT did not return a list")
+                except:
+                    # fallback to random prices
+                    prices = [random.randint(200000, 800000) for _ in range(100)]
 
-                    # Apply min/max filter
+                # Step 4: Create 100 demo homes per OSM location
+                for i, estimated_price in enumerate(prices):
                     if (min_price and estimated_price < min_price) or (max_price and estimated_price > max_price):
                         continue
 
@@ -77,9 +82,8 @@ def search():
                         "Distance_from_Landfall": "N/A"
                     })
 
-        # Save for CSV export
         export_data_store["current_search"] = final_data
-        preview_data = final_data[:5]  # preview first 5 rows
+        preview_data = final_data[:5]
 
         return jsonify({
             "preview": preview_data,

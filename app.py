@@ -4,6 +4,7 @@ import csv
 import io
 import openai
 import requests
+import json
 
 app = Flask(__name__)
 
@@ -29,26 +30,19 @@ def search():
         return jsonify({"error": "No query provided"}), 400
 
     try:
-        # --- Step 1: Use OpenAI to parse the query ---
-        prompt = f"""
-        Extract structured information from this user query for real estate search:
-        Query: "{query}"
-        Return JSON with fields:
-        - zip_codes: list of 5-digit ZIP codes
-        - min_price: minimum home price in dollars (optional)
-        - max_price: maximum home price in dollars (optional)
-        - hurricane_related: true/false
-        """
+        # --- Step 1: Use OpenAI ChatCompletion to parse query ---
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant that extracts ZIP codes, min/max prices, and hurricane-related info from user queries."},
+            {"role": "user", "content": f'Extract structured info from this query: "{query}". Return JSON with fields: zip_codes (list), min_price (int or null), max_price (int or null), hurricane_related (true/false).'}
+        ]
 
-        response = openai.Completion.create(
-            model="text-davinci-003",
-            prompt=prompt,
-            temperature=0,
-            max_tokens=150
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+            temperature=0
         )
 
-        structured_text = response.choices[0].text.strip()
-        import json
+        structured_text = response.choices[0].message.content.strip()
         structured_data = json.loads(structured_text)
 
         zip_codes = structured_data.get("zip_codes", [])

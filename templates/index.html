@@ -1,234 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pelee LLC | Data Export Tool</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: url('/static/hurricane_marty_Background.jpg') no-repeat center center fixed;
-      background-size: cover;
-      color: #fff;
-      margin: 0;
-      padding: 0;
-      text-align: center;
-    }
-    header {
-      padding: 1.5rem 1rem;
-      text-shadow: 2px 2px #000;
-    }
-    h1 {
-      margin: 0;
-      font-size: 2.5rem;
-    }
-    p.tagline {
-      margin-top: 0.25rem;
-      color: #ffecb3;
-      font-weight: bold;
-    }
-    .search-box {
-      margin: 1rem auto;
-      max-width: 600px;
-    }
-    input[type="text"] {
-      width: 70%;
-      padding: 0.75rem;
-      border-radius: 8px;
-      border: none;
-      outline: none;
-      font-size: 1rem;
-    }
-    button {
-      padding: 0.75rem 1.25rem;
-      margin-left: 0.5rem;
-      border: none;
-      border-radius: 8px;
-      background-color: #ff5722;
-      color: #fff;
-      cursor: pointer;
-      font-size: 1rem;
-      font-weight: bold;
-      box-shadow: 2px 2px 5px #000;
-    }
-    button:hover {
-      background-color: #ff7043;
-    }
-    .examples {
-      margin-top: 0.75rem;
-      font-size: 0.95rem;
-      color: #fff176;
-    }
-    #loader {
-      display: none;
-      margin: 1rem auto;
-    }
-    #loader div {
-      width: 200px;
-      height: 20px;
-      border: 1px solid #fff;
-      border-radius: 10px;
-      overflow: hidden;
-      margin: auto;
-    }
-    #loader-bar {
-      height: 100%;
-      width: 0%;
-      background-color: #ff5722;
-      animation: loading 2s infinite;
-    }
-    @keyframes loading {
-      0% { width: 0%; }
-      50% { width: 100%; }
-      100% { width: 0%; }
-    }
-    table {
-      margin: 1.5rem auto;
-      border-collapse: collapse;
-      width: 90%;
-      max-width: 1000px;
-      background: rgba(0,0,0,0.7);
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    th, td {
-      border: 1px solid #fff;
-      padding: 0.75rem;
-      text-align: left;
-    }
-    th {
-      background-color: rgba(255,87,34,0.8);
-    }
-    #results-count {
-      margin-top: 1rem;
-      font-style: italic;
-      color: #fff;
-    }
-    #disclaimer {
-      margin-top: 0.75rem;
-      font-size: 0.9rem;
-      color: #ffecb3;
-    }
-    footer {
-      margin-top: 2rem;
-      padding: 1rem;
-      font-size: 0.85rem;
-      color: #ffecb3;
-      text-shadow: 1px 1px #000;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hurricane Marty | Home Tracker</title>
+<style>
+body {
+  font-family: Comic Sans MS, sans-serif;
+  background: url('/static/hurricane_marty_Background.jpg') no-repeat center center fixed;
+  background-size: cover;
+  color: #fff;
+  text-align: center;
+  margin: 0;
+}
+header {
+  padding: 2rem 1rem;
+  background: rgba(0,0,0,0.5);
+}
+h1 {
+  font-size: 2.5rem;
+  color: #fffa65;
+  text-shadow: 2px 2px #ff0000;
+}
+.search-box { margin: 1rem auto; max-width: 600px; }
+input[type="text"] {
+  width: 70%; padding: 0.75rem; border-radius: 8px; border: none; outline: none;
+  font-size: 1rem;
+}
+button {
+  padding: 0.75rem 1.25rem; margin-left: 0.5rem; border: none; border-radius: 8px;
+  background: #ff6f61; color: #fff; cursor: pointer; font-size: 1rem; font-weight:bold;
+}
+button:hover { background: #ff3b2f; }
+.examples { margin-top: 0.75rem; font-size: 0.95rem; color: #fff; }
+table { margin: 1.5rem auto; border-collapse: collapse; width: 90%; max-width: 1000px; background: rgba(0,0,0,0.6); border-radius: 10px; overflow: hidden; }
+th, td { border: 1px solid #fff; padding: 0.75rem; text-align: left; }
+th { background-color: rgba(255,255,0,0.3); }
+#results-count { margin-top: 1rem; font-style: italic; color: #fff; }
+footer { margin-top: 2rem; padding: 1rem; font-size: 0.85rem; color: #fff; background: rgba(0,0,0,0.5);}
+#loading { display:none; color: #ff0; font-weight:bold; margin-top:1rem; }
+</style>
 </head>
 <body>
-  <header>
-    <h1>Pelee LLC | Data Export Tool</h1>
-    <p class="tagline">Track homes, explore estimated values, and export with flair! 🌴🏠🌪️</p>
-  </header>
+<header>
+  <h1>Hurricane Marty 🌴🏠🌪️</h1>
+  <p class="tagline">Track homes, estimate values, and export data with flair!</p>
+</header>
 
-  <div class="search-box">
-    <input type="text" id="query" placeholder="Enter ZIP code and optional min price (e.g. 33101 over $400k)">
-    <button onclick="runSearch()">Search</button>
-  </div>
+<div class="search-box">
+  <input type="text" id="query" placeholder="Enter ZIP or query (e.g. Homes in 33101 over $400k)">
+  <button onclick="runSearch()">Search</button>
+</div>
+<p class="examples">
+Examples: "Homes in ZIP 33101", "Homes over $400k in 90210"
+</p>
 
-  <p class="examples">
-    Examples: "Homes in ZIP 33101", "Homes over $400k in 90210"
-  </p>
+<p id="loading">Generating homes, please wait... 🌪️🌴</p>
+<p id="results-count"></p>
 
-  <!-- Loader -->
-  <div id="loader">
-    <div><div id="loader-bar"></div></div>
-    <p>Fetching homes, please wait...</p>
-  </div>
+<table id="results-table" style="display: none;">
+  <thead>
+    <tr>
+      <th>Address</th>
+      <th>Latitude</th>
+      <th>Longitude</th>
+      <th>Estimated Price</th>
+      <th>Distance from Landfall</th>
+    </tr>
+  </thead>
+  <tbody id="results-body"></tbody>
+</table>
 
-  <p id="results-count"></p>
+<button id="download-btn" style="display: none;" onclick="downloadCSV()">Download CSV</button>
 
-  <table id="results-table" style="display: none;">
-    <thead>
-      <tr>
-        <th>Address</th>
-        <th>Latitude</th>
-        <th>Longitude</th>
-        <th>Estimated Price</th>
-        <th>Distance from Landfall</th>
-      </tr>
-    </thead>
-    <tbody id="results-body"></tbody>
-  </table>
+<footer>
+  © 2025 Pelee LLC — All rights reserved.
+</footer>
 
-  <button id="download-btn" style="display: none;" onclick="downloadCSV()">Download CSV</button>
+<script>
+async function runSearch() {
+  const query = document.getElementById("query").value;
+  if(!query) return;
+  document.getElementById("loading").style.display="block";
+  document.getElementById("results-table").style.display="none";
+  document.getElementById("download-btn").style.display="none";
+  document.getElementById("results-count").innerText="";
 
-  <p id="disclaimer" style="display: none;">
-    Free preview shows 5 rows. CSV export includes all generated homes.
-  </p>
+  const res = await fetch("/search", {
+    method:"POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({query: query})
+  });
 
-  <footer>
-    © <span id="year"></span> Pelee LLC — All rights reserved.
-  </footer>
+  const data = await res.json();
+  document.getElementById("loading").style.display="none";
 
-  <script>
-    async function runSearch() {
-      const query = document.getElementById("query").value;
-      if (!query) return;
+  if(data.error) { alert("Error: "+data.error); return; }
 
-      // Show loader
-      document.getElementById("loader").style.display = "block";
-      document.getElementById("results-table").style.display = "none";
-      document.getElementById("download-btn").style.display = "none";
-      document.getElementById("disclaimer").style.display = "none";
-      document.getElementById("results-count").innerText = "";
+  document.getElementById("results-count").innerText=`Showing ${data.preview_count} of ${data.total_count} homes`;
 
-      try {
-        const res = await fetch("/search", {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({query: query})
-        });
+  const tbody = document.getElementById("results-body");
+  tbody.innerHTML="";
+  data.preview.forEach(row=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td>${row.Address}</td>
+      <td>${row.Latitude}</td>
+      <td>${row.Longitude}</td>
+      <td>$${row.Estimated_Price.toLocaleString()}</td>
+      <td>${row.Distance_from_Landfall}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 
-        const data = await res.json();
-        document.getElementById("loader").style.display = "none";
+  document.getElementById("results-table").style.display="table";
+  document.getElementById("download-btn").style.display="inline-block";
+}
 
-        if (data.error) {
-          alert("Error: " + data.error);
-          return;
-        }
+function downloadCSV(){ window.location.href="/download"; }
 
-        document.getElementById("results-count").innerText =
-          `Showing ${data.preview_count} out of ${data.total_count} results`;
-
-        const tbody = document.getElementById("results-body");
-        tbody.innerHTML = "";
-        data.preview.forEach(row => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${row.Address}</td>
-            <td>${row.Latitude}</td>
-            <td>${row.Longitude}</td>
-            <td>$${row.Estimated_Price.toLocaleString()}</td>
-            <td>${row.Distance_from_Landfall}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-
-        document.getElementById("results-table").style.display = "table";
-        document.getElementById("download-btn").style.display = "inline-block";
-        document.getElementById("disclaimer").style.display = "block";
-
-      } catch (err) {
-        document.getElementById("loader").style.display = "none";
-        alert("Error: " + err);
-      }
-    }
-
-    function downloadCSV() {
-      window.location.href = "/download";
-    }
-
-    // Auto year in footer
-    document.getElementById("year").innerText = new Date().getFullYear();
-
-    // Trigger search on Enter key
-    document.getElementById("query").addEventListener("keypress", function (e) {
-      if (e.key === "Enter") runSearch();
-    });
-  </script>
+// Trigger search on Enter key
+document.getElementById("query").addEventListener("keypress", function(e){
+  if(e.key==="Enter"){ runSearch(); }
+});
+</script>
 </body>
 </html>

@@ -24,7 +24,7 @@ def search():
         return jsonify({"error": "No query provided"}), 400
 
     try:
-        # Step 1: Parse query for ZIP code and price
+        # Step 1: Extract ZIP codes and min/max price from query using GPT
         messages = [
             {"role": "system", "content": "Extract ZIP codes and min/max price from user query."},
             {"role": "user", "content": f'Query: "{query}". Return JSON: zip_codes (list), min_price (int or null), max_price (int or null).'}
@@ -44,41 +44,69 @@ def search():
 
         final_data = []
 
-        # Step 2: Pull addresses from OpenStreetMap
+        # Step 2: Fetch addresses from OpenStreetMap
         for zip_code in zip_codes:
             osm_url = f"https://nominatim.openstreetmap.org/search?postalcode={zip_code}&country=USA&format=json&addressdetails=1"
             osm_response = requests.get(osm_url, headers={"User-Agent": "PeleeAI/1.0"})
             locations = osm_response.json()
 
+            if not locations:
+                # Fallback to GPT-generated homes if OSM returns zero
+                fallback_prompt = (
+                    f"Generate 100 single-family home addresses for ZIP code {zip_code} in the USA. "
+                    f"Return JSON array of objects: Address, Estimated_Price (USD), Latitude, Longitude. "
+                    f"Do not include apartments, condos, or units."
+                )
+                try:
+                    gpt_resp = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[{"role": "user", "content": fallback_prompt}],
+                        temperature=0
+                    )
+                    homes = json.loads(gpt_resp.choices[0].message.content.strip())
+                    # Add Distance from Landfall placeholder
+                    for home in homes:
+                        home["Distance_from_Landfall"] = "N/A"
+                    final_data.extend(homes)
+                except:
+                    # fallback random data if GPT fails
+                    for i in range(100):
+                        final_data.append({
+                            "Address": f"{zip_code} Demo Home #{i+1}",
+                            "Latitude": random.uniform(28, 30),
+                            "Longitude": random.uniform(-82, -80),
+                            "Estimated_Price": random.randint(200000, 800000),
+                            "Distance_from_Landfall": "N/A"
+                        })
+                continue
+
+            # Process OSM locations
             for loc in locations:
                 address_name = loc.get('display_name')
-                # Skip apartments/condos in OSM name
+                # Skip apartments/condos/units
                 if any(x in address_name.lower() for x in ["apt", "apartment", "condo", "unit"]):
                     continue
 
-                # Step 3: Ask GPT for 100 rough estimated prices in one batch
+                # Generate 100 estimated prices via GPT batch
                 estimate_prompt = (
                     f"Provide 100 rough estimated prices in USD for typical single-family homes "
-                    f"in the area of {address_name}. Return as a JSON array of numbers only."
+                    f"in the area of {address_name}. Return as a JSON array of numbers."
                 )
                 try:
-                    price_response = openai.ChatCompletion.create(
+                    price_resp = openai.ChatCompletion.create(
                         model="gpt-3.5-turbo",
                         messages=[{"role": "user", "content": estimate_prompt}],
                         temperature=0
                     )
-                    prices = json.loads(price_response.choices[0].message.content.strip())
+                    prices = json.loads(price_resp.choices[0].message.content.strip())
                     if not isinstance(prices, list):
                         raise ValueError("GPT did not return a list")
                 except:
-                    # fallback to random prices
                     prices = [random.randint(200000, 800000) for _ in range(100)]
 
-                # Step 4: Create demo homes per OSM location
                 for i, estimated_price in enumerate(prices):
                     if (min_price and estimated_price < min_price) or (max_price and estimated_price > max_price):
                         continue
-
                     final_data.append({
                         "Address": f"{address_name} #{i+1}",
                         "Latitude": float(loc.get("lat")) + random.uniform(-0.001, 0.001),

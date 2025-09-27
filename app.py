@@ -14,23 +14,20 @@ openai.api_key = os.environ.get("OPENAI_API_KEY")
 # --- In-memory storage for CSV export ---
 export_data_store = {}
 
-# --- Home page ---
 @app.route("/")
 def index():
     return render_template("index.html")
 
-# --- Search endpoint ---
 @app.route("/search", methods=["POST"])
 def search():
     data = request.get_json()
     query = data.get("query")
-    subscription = data.get("subscription", "free")
 
     if not query:
         return jsonify({"error": "No query provided"}), 400
 
     try:
-        # --- Step 1: Use OpenAI ChatCompletion to parse query ---
+        # --- Use OpenAI to parse query ---
         messages = [
             {"role": "system", "content": "You are a helpful assistant that extracts ZIP codes, min/max prices, and hurricane-related info from user queries."},
             {"role": "user", "content": f'Extract structured info from this query: "{query}". Return JSON with fields: zip_codes (list), min_price (int or null), max_price (int or null), hurricane_related (true/false).'}
@@ -53,7 +50,7 @@ def search():
         if not zip_codes:
             return jsonify({"error": "No ZIP code found in query"}), 400
 
-        # --- Step 2: Query OpenStreetMap / Nominatim for each ZIP ---
+        # --- Query OSM / Nominatim for each ZIP ---
         final_data = []
         for zip_code in zip_codes:
             osm_url = f"https://nominatim.openstreetmap.org/search?postalcode={zip_code}&country=USA&format=json&addressdetails=1"
@@ -61,44 +58,37 @@ def search():
             locations = osm_response.json()
 
             for loc in locations:
-                # Optional: filter by type (residential)
-                if loc.get("type") in ["house", "residential", "building"]:
-                    final_data.append({
-                        "Address": loc.get("display_name"),
-                        "Latitude": loc.get("lat"),
-                        "Longitude": loc.get("lon"),
-                        "AI_Filtered": f"Hurricane related: {hurricane_related}, Min price: {min_price}, Max price: {max_price}"
-                    })
+                # OSM only provides building/address data; AI_Filtered tags can include price/hurricane info
+                final_data.append({
+                    "Address": loc.get("display_name"),
+                    "Latitude": loc.get("lat"),
+                    "Longitude": loc.get("lon"),
+                    "AI_Filtered": f"Hurricane related: {hurricane_related}, Min price: {min_price}, Max price: {max_price}"
+                })
 
         # Save for CSV export
         export_data_store["current_search"] = final_data
 
-        # Limit preview for display
-        preview_rows = 5
-        preview_data = final_data[:preview_rows]
+        # Front-end preview: show only 5 rows for usability
+        preview_data = final_data[:5]
 
         return jsonify({
             "preview": preview_data,
             "preview_count": len(preview_data),
             "total_count": len(final_data),
-            "max_export": 20,
-            "subscription": subscription
+            "subscription": "free"
         })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- CSV download endpoint ---
 @app.route("/download", methods=["GET"])
 def download_csv():
-    subscription = request.args.get("subscription", "free")
     data = export_data_store.get("current_search", [])
 
-    # Determine max exportable rows
-    max_rows = 5 if subscription == "free" else 20
-    export_data = data[:max_rows]
+    # No limit on export anymore
+    export_data = data
 
-    # Create CSV
     output = io.StringIO()
     writer = csv.DictWriter(output, fieldnames=["Address", "Latitude", "Longitude", "AI_Filtered"])
     writer.writeheader()
@@ -111,6 +101,5 @@ def download_csv():
                      download_name="homes_export.csv",
                      as_attachment=True)
 
-# --- Run Flask app ---
 if __name__ == "__main__":
     app.run(debug=True)

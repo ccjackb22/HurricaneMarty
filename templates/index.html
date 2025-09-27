@@ -129,13 +129,10 @@
     background-color: rgba(0,0,0,0.5);
   }
 
-  /* Moving hurricane icon */
-  #hurricane-icon {
+  /* Floating icons */
+  .floating-icon {
     position: absolute;
-    top: 20px;
-    left: -100px;
-    width: 80px;
-    z-index: 10;
+    z-index: 5;
   }
 </style>
 </head>
@@ -146,8 +143,13 @@
   <p class="tagline">Track homes, estimate values, and export data with flair!</p>
 </header>
 
-<!-- Moving Hurricane Icon -->
-<img src="/static/hurricane_marty_icon.png" id="hurricane-icon">
+<!-- Floating Elements: base64 embedded -->
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABpUlEQVRYR+2X0U3DMBCEf4ptT2qCkTbFV1FvYLB9G3AIlYAJ6OwUdjaQGxNSR0i7rIlGq85tZP6Mk8xA9bAM+R8X+6kMKbOqzXQa4BRKgHstZ8Cq7iI1H2fwe/6Il4Ekexwzt54BuIJ8iJKrwAG+CLkC2gC3ZkTAfH1UgI3wG+APqQpQUwCuQIrIGKSAJaACzQA1AJ9AEKz7wD+4Ag6Eo9q0fo1gLz3QBPyH3wc1rAZeQ5mCzQInQChcE+Y7RWYBz2Pq8A1o0aUAA9eo6M+oOeAOc4HeA4gGsn3Y8VvZqYBsBAfgB2ThgIlcGfqWHrJQG3lQmgvI/mYAqYpVZAkcU5eU8CBMA5piwJfEq0Pr2pDcGl+0ETpGA3loJp0kU9ZAwukA+o0pMFa/TBz0CgWwA0qG4Y1ByZ8f3yohAJdRI1AvnvBYRgBTRfqC3Kmy6PEA+qB5gHvg+ZYQ1zgBa1wErR7o6XjLAe1wIaL4J3uZTFsDVoAAAAASUVORK5CYII=" id="hurricane-icon" style="width:80px; top:20px; left:-100px;">
+
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABLUlEQVRIie3UQQqDQBAF0NccGzRyq/6uOaNQs7H/A1+hV3GAWqN3Go2E9pFf8wDkoyQp7Q+QzM5UeS8b6S2zIBbQBrC1iC0oCVshG+BD7M1W/w5yjoEvhAGsY5gTYpVEfDJppKgnwkuR9QbwROwCXcDq6eTFLYQW+g7rEOogL/4O5mij5r+8k8BlgEbMg+iiy40CPwSOBk8k4mBe4kwtAA8y3ACpFhU2q2WPO5WeT1tAaeAYcN9YgBtogGN40BVqS+qN5WJcgGtC+q5vDNrWCG+EDuA8kNP3X6i35mAAAAAElFTkSuQmCC" class="floating-icon" style="width:40px; top:200px; left:-50px;">
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABLUlEQVRIie3UQQqDQBAF0NccGzRyq/6uOaNQs7H/A1+hV3GAWqN3Go2E9pFf8wDkoyQp7Q+QzM5UeS8b6S2zIBbQBrC1iC0oCVshG+BD7M1W/w5yjoEvhAGsY5gTYpVEfDJppKgnwkuR9QbwROwCXcDq6eTFLYQW+g7rEOogL/4O5mij5r+8k8BlgEbMg+iiy40CPwSOBk8k4mBe4kwtAA8y3ACpFhU2q2WPO5WeT1tAaeAYcN9YgBtogGN40BVqS+qN5WJcgGtC+q5vDNrWCG+EDuA8kNP3X6i35mAAAAAElFTkSuQmCC" class="floating-icon" style="width:40px; top:300px; left:-150px;">
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABGklEQVRIie2UQQrCQBCFv8nK2r+BO0AEaVnZCq2Bx6DldC7vh+qM6biMZBOuOJD7Vg5R+ODTtEoMGVQ2Se1BgJEluIKwG+gN8nFzqS+0+SiJt4m6F6m99yDyODg5r3o3XBxwO/EX8gQp3s4k21vHjA1yKbrI0yP4hOQY0gGZ0EIQ2oHgLxR8yZpAEZ/4R/6A5nX8/1O9L5xL52kKqF8heKXwgy+5bSTwFwp+e6iO7nR5hUAAAAASUVORK5CYII=" class="floating-icon" style="width:35px; top:150px; left:-100px;">
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABGklEQVRIie2UQQrCQBCFv8nK2r+BO0AEaVnZCq2Bx6DldC7vh+qM6biMZBOuOJD7Vg5R+ODTtEoMGVQ2Se1BgJEluIKwG+gN8nFzqS+0+SiJt4m6F6m99yDyODg5r3o3XBxwO/EX8gQp3s4k21vHjA1yKbrI0yP4hOQY0gGZ0EIQ2oHgLxR8yZpAEZ/4R/6A5nX8/1O9L5xL52kKqF8heKXwgy+5bSTwFwp+e6iO7nR5hUAAAAASUVORK5CYII=" class="floating-icon" style="width:35px; top:250px; left:-200px;">
 
 <div class="search-box">
   <input type="text" id="query" placeholder="Enter city or ZIP (e.g., Miami over $400k)">
@@ -181,20 +183,42 @@
 </footer>
 
 <script>
+// Hurricane Marty animation
 const hurricane = document.getElementById("hurricane-icon");
-let pos = -100;
+let posX = -100, posY = 50, dirY = 1;
 function moveHurricane() {
-    pos += 1;
-    if(pos > window.innerWidth + 100) pos = -100;
-    hurricane.style.left = pos + "px";
+    posX += 1;
+    posY += dirY * 0.5;
+    if(posY > 100 || posY < 20) dirY *= -1;
+    if(posX > window.innerWidth + 100) posX = -100;
+    hurricane.style.left = posX + "px";
+    hurricane.style.top = posY + "px";
     requestAnimationFrame(moveHurricane);
 }
 moveHurricane();
 
+// Floating homes and palms
+const floating = document.querySelectorAll('.floating-icon:not(#hurricane-icon)');
+floating.forEach((el, index) => {
+    let x = parseInt(el.style.left);
+    let y = parseInt(el.style.top);
+    let speed = 0.3 + Math.random() * 0.5;
+    let dir = Math.random() < 0.5 ? 1 : -1;
+    function animate() {
+        x += speed;
+        y += Math.sin(x/50) * dir;
+        if(x > window.innerWidth + 50) x = -50;
+        el.style.left = x + "px";
+        el.style.top = y + "px";
+        requestAnimationFrame(animate);
+    }
+    animate();
+});
+
+// Search & CSV
 async function runSearch() {
   const query = document.getElementById("query").value;
   if(!query) return;
-
   document.getElementById("loading").style.display = "block";
   document.getElementById("results-table").style.display = "none";
   document.getElementById("download-btn").style.display = "none";
@@ -208,7 +232,6 @@ async function runSearch() {
 
   const data = await res.json();
   document.getElementById("loading").style.display = "none";
-
   if(data.error){ alert("Error: "+data.error); return; }
 
   document.getElementById("results-count").innerText = `Showing ${data.preview_count} of ${data.total_count} homes`;

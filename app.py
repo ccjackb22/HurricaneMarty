@@ -5,7 +5,6 @@ import io
 import openai
 import requests
 import json
-import random
 
 app = Flask(__name__)
 openai.api_key = os.environ.get("OPENAI_API_KEY")
@@ -24,7 +23,7 @@ def search():
         return jsonify({"error": "No query provided"}), 400
 
     try:
-        # --- Step 1: Parse user query ---
+        # --- Step 1: Parse query for ZIP code and price ---
         messages = [
             {"role": "system", "content": "Extract ZIP codes and min/max price from user query."},
             {"role": "user", "content": f'Query: "{query}". Return JSON: zip_codes (list), min_price (int or null), max_price (int or null).'}
@@ -51,7 +50,7 @@ def search():
             locations = osm_response.json()
 
             for loc in locations:
-                # --- Step 3: Ask GPT for rough estimated price ---
+                # Step 3: Ask GPT for rough estimated price
                 estimate_prompt = f"Provide a rough estimate price in USD for a typical residential home at {loc.get('display_name')} in this area. Return only a number."
                 price_response = openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
@@ -61,7 +60,7 @@ def search():
                 try:
                     estimated_price = int(''.join(filter(str.isdigit, price_response.choices[0].message.content)))
                 except:
-                    estimated_price = random.randint(200000, 800000)
+                    estimated_price = 300000  # fallback price
 
                 # Apply min/max filter
                 if (min_price and estimated_price < min_price) or (max_price and estimated_price > max_price):
@@ -72,7 +71,7 @@ def search():
                     "Latitude": loc.get("lat"),
                     "Longitude": loc.get("lon"),
                     "Estimated_Price": estimated_price,
-                    "Hurricane_Impact": random.choice([True, False])
+                    "Distance_from_Landfall": "N/A"  # placeholder field
                 })
 
         export_data_store["current_search"] = final_data
@@ -91,7 +90,7 @@ def search():
 def download_csv():
     data = export_data_store.get("current_search", [])
     output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=["Address", "Latitude", "Longitude", "Estimated_Price", "Hurricane_Impact"])
+    writer = csv.DictWriter(output, fieldnames=["Address", "Latitude", "Longitude", "Estimated_Price", "Distance_from_Landfall"])
     writer.writeheader()
     for row in data:
         writer.writerow(row)

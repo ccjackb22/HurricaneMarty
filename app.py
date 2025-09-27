@@ -5,6 +5,7 @@ import io
 import openai
 import requests
 import json
+import random
 
 app = Flask(__name__)
 
@@ -27,7 +28,7 @@ def search():
         return jsonify({"error": "No query provided"}), 400
 
     try:
-        # --- Use OpenAI to parse query ---
+        # --- Step 1: Use OpenAI to parse query ---
         messages = [
             {"role": "system", "content": "You are a helpful assistant that extracts ZIP codes, min/max prices, and hurricane-related info from user queries."},
             {"role": "user", "content": f'Extract structured info from this query: "{query}". Return JSON with fields: zip_codes (list), min_price (int or null), max_price (int or null), hurricane_related (true/false).'}
@@ -50,7 +51,7 @@ def search():
         if not zip_codes:
             return jsonify({"error": "No ZIP code found in query"}), 400
 
-        # --- Query OSM / Nominatim for each ZIP ---
+        # --- Step 2: Query OSM / Nominatim for each ZIP ---
         final_data = []
         for zip_code in zip_codes:
             osm_url = f"https://nominatim.openstreetmap.org/search?postalcode={zip_code}&country=USA&format=json&addressdetails=1"
@@ -58,18 +59,28 @@ def search():
             locations = osm_response.json()
 
             for loc in locations:
-                # OSM only provides building/address data; AI_Filtered tags can include price/hurricane info
+                # Generate a “mock” home price if not provided
+                base_price = random.randint(200_000, 800_000)
+                if min_price and base_price < min_price:
+                    base_price += min_price
+                if max_price and base_price > max_price:
+                    base_price = max_price - random.randint(0, 50_000)
+
+                # Random hurricane impact flag if requested
+                hurricane_flag = hurricane_related and random.choice([True, False])
+
                 final_data.append({
                     "Address": loc.get("display_name"),
                     "Latitude": loc.get("lat"),
                     "Longitude": loc.get("lon"),
-                    "AI_Filtered": f"Hurricane related: {hurricane_related}, Min price: {min_price}, Max price: {max_price}"
+                    "Price": base_price,
+                    "Hurricane_Impact": hurricane_flag
                 })
 
         # Save for CSV export
         export_data_store["current_search"] = final_data
 
-        # Front-end preview: show only 5 rows for usability
+        # Front-end preview: show only 5 rows
         preview_data = final_data[:5]
 
         return jsonify({
@@ -86,11 +97,11 @@ def search():
 def download_csv():
     data = export_data_store.get("current_search", [])
 
-    # No limit on export anymore
+    # Unlimited export
     export_data = data
 
     output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=["Address", "Latitude", "Longitude", "AI_Filtered"])
+    writer = csv.DictWriter(output, fieldnames=["Address", "Latitude", "Longitude", "Price", "Hurricane_Impact"])
     writer.writeheader()
     for row in export_data:
         writer.writerow(row)

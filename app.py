@@ -10,6 +10,13 @@ openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 export_data_store = {}
 
+# Common street names for demo purposes
+STREET_NAMES = [
+    "Maple St", "Oak Ave", "Pine Ln", "Cedar Ct", "Elm St",
+    "Washington Blvd", "Lincoln Rd", "Jefferson Ave", "Madison St",
+    "Adams St", "1st St", "2nd Ave", "3rd St", "4th Ave", "Sunset Blvd"
+]
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -39,24 +46,25 @@ def search():
         city = parsed.get("city", "Unknown City")
         min_price = parsed.get("min_price", 0)
 
-        # --- Generate 100+ homes as fallback ---
+        # --- Generate 100+ realistic homes ---
         final_data = []
         for i in range(100):
+            house_number = random.randint(100, 9999)
+            street = random.choice(STREET_NAMES)
+            address = f"{house_number} {street}, {city}, USA"
             estimated_price = random.randint(200000, 2000000)
-            if estimated_price < min_price:
-                estimated_price += min_price  # Ensure meets min_price
+            if min_price and estimated_price < min_price:
+                estimated_price += min_price
             final_data.append({
-                "Address": f"{city} Demo Home #{i+1}",
+                "Address": address,
                 "Latitude": round(random.uniform(28.0, 30.0), 6),
                 "Longitude": round(random.uniform(-82.0, -80.0), 6),
                 "Estimated_Price": estimated_price,
                 "Distance_from_Landfall": "N/A"
             })
 
-        # Store for CSV
+        # Store for CSV export
         export_data_store["current_search"] = final_data
-
-        # Preview first 5 rows
         preview_data = final_data[:5]
 
         return jsonify({
@@ -67,7 +75,6 @@ def search():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 @app.route("/download", methods=["GET"])
 def download_csv():
@@ -82,7 +89,6 @@ def download_csv():
                      mimetype="text/csv",
                      download_name="homes_export.csv",
                      as_attachment=True)
-
 
 if __name__ == "__main__":
     app.run(debug=True)

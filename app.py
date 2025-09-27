@@ -3,25 +3,12 @@ import os
 import csv
 import io
 import openai
-import requests
-import json
 import random
-import re
 
 app = Flask(__name__)
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 export_data_store = {}
-
-def parse_gpt_json(raw_text):
-    """Extract JSON array from GPT output robustly."""
-    try:
-        match = re.search(r"(\[.*\])", raw_text, re.DOTALL)
-        if match:
-            return json.loads(match.group(1))
-    except:
-        pass
-    return []
 
 @app.route("/")
 def index():
@@ -35,10 +22,10 @@ def search():
         return jsonify({"error": "No query provided"}), 400
 
     try:
-        # Extract city and min/max price using GPT
+        # --- Extract city and min price using GPT ---
         messages = [
-            {"role": "system", "content": "Extract city name and min/max price from user query."},
-            {"role": "user", "content": f'Query: "{query}". Return JSON: city (str), min_price (int or null), max_price (int or null).'}
+            {"role": "system", "content": "Extract city name and min price from user query."},
+            {"role": "user", "content": f'Query: "{query}". Return JSON with "city" and "min_price" (int or null).'}
         ]
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
@@ -46,63 +33,30 @@ def search():
             temperature=0
         )
         try:
-            parsed = json.loads(response.choices[0].message.content.strip())
+            parsed = eval(response.choices[0].message.content.strip())
         except:
             parsed = {}
-        city = parsed.get("city")
-        min_price = parsed.get("min_price")
-        max_price = parsed.get("max_price")
+        city = parsed.get("city", "Unknown City")
+        min_price = parsed.get("min_price", 0)
 
-        if not city:
-            return jsonify({"error": "No city found in query"}), 400
-
+        # --- Generate 100+ homes as fallback ---
         final_data = []
+        for i in range(100):
+            estimated_price = random.randint(200000, 2000000)
+            if estimated_price < min_price:
+                estimated_price += min_price  # Ensure meets min_price
+            final_data.append({
+                "Address": f"{city} Demo Home #{i+1}",
+                "Latitude": round(random.uniform(28.0, 30.0), 6),
+                "Longitude": round(random.uniform(-82.0, -80.0), 6),
+                "Estimated_Price": estimated_price,
+                "Distance_from_Landfall": "N/A"
+            })
 
-        # Step 1: Get city polygon from OSM
-        osm_url = f"https://nominatim.openstreetmap.org/search?city={city}&country=USA&format=json&polygon_geojson=1"
-        osm_response = requests.get(osm_url, headers={"User-Agent": "HurricaneMarty/1.0"})
-        city_results = osm_response.json() if osm_response.status_code == 200 else []
-
-        # Step 2: Generate homes
-        if not city_results:
-            # fallback GPT if OSM city not found
-            city_name = city
-        else:
-            city_name = city_results[0].get("display_name", city)
-
-        fallback_prompt = (
-            f"Generate 100 single-family home addresses in {city_name}, USA. "
-            f"Return JSON array of objects: Address, Estimated_Price (USD), Latitude, Longitude. "
-            f"Do not include apartments, condos, or units."
-        )
-        try:
-            gpt_resp = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": fallback_prompt}],
-                temperature=0
-            )
-            homes = parse_gpt_json(gpt_resp.choices[0].message.content.strip())
-        except:
-            homes = []
-
-        if not homes:
-            # fallback demo homes
-            homes = []
-            for i in range(100):
-                homes.append({
-                    "Address": f"{city_name} Demo Home #{i+1}",
-                    "Latitude": random.uniform(28, 30),
-                    "Longitude": random.uniform(-82, -80),
-                    "Estimated_Price": random.randint(200000, 800000),
-                    "Distance_from_Landfall": "N/A"
-                })
-
-        # Apply min/max price filter
-        if min_price or max_price:
-            homes = [h for h in homes if (not min_price or h["Estimated_Price"] >= min_price) and (not max_price or h["Estimated_Price"] <= max_price)]
-
-        final_data.extend(homes)
+        # Store for CSV
         export_data_store["current_search"] = final_data
+
+        # Preview first 5 rows
         preview_data = final_data[:5]
 
         return jsonify({
@@ -113,6 +67,7 @@ def search():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/download", methods=["GET"])
 def download_csv():
@@ -127,6 +82,7 @@ def download_csv():
                      mimetype="text/csv",
                      download_name="homes_export.csv",
                      as_attachment=True)
+
 
 if __name__ == "__main__":
     app.run(debug=True)

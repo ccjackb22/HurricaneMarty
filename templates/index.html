@@ -3,21 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hurricane Marty 🌪️🏠</title>
+<title>Hurricane Marty 🌴🏠🌪️</title>
 <style>
   body {
-    font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
+    font-family: Arial, sans-serif;
     text-align: center;
-    background: url('/static/hurricane_marty_Background.jpg') no-repeat center center fixed;
+    background: url('/static/beach_background.jpg') no-repeat center center fixed;
     background-size: cover;
     color: #ffffff;
+    overflow-x: hidden; /* prevent horizontal scroll */
   }
 
   header {
     padding: 2rem 1rem;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0,0,0,0.5);
     position: relative;
     z-index: 5;
   }
@@ -129,27 +130,35 @@
     background-color: rgba(0,0,0,0.5);
   }
 
-  /* Floating icons */
+  /* Floating elements */
   .floating-icon {
     position: absolute;
     z-index: 5;
+    pointer-events: none;
+  }
+
+  #hurricane-icon {
+    position: absolute;
+    z-index: 10;
+    width: 80px;
   }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Hurricane Marty 🌪️🏠</h1>
+  <h1>Hurricane Marty 🌴🏠🌪️</h1>
   <p class="tagline">Track homes, estimate values, and export data with flair!</p>
 </header>
 
-<!-- Floating Elements: base64 embedded -->
-<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABpUlEQVRYR+2X0U3DMBCEf4ptT2qCkTbFV1FvYLB9G3AIlYAJ6OwUdjaQGxNSR0i7rIlGq85tZP6Mk8xA9bAM+R8X+6kMKbOqzXQa4BRKgHstZ8Cq7iI1H2fwe/6Il4Ekexwzt54BuIJ8iJKrwAG+CLkC2gC3ZkTAfH1UgI3wG+APqQpQUwCuQIrIGKSAJaACzQA1AJ9AEKz7wD+4Ag6Eo9q0fo1gLz3QBPyH3wc1rAZeQ5mCzQInQChcE+Y7RWYBz2Pq8A1o0aUAA9eo6M+oOeAOc4HeA4gGsn3Y8VvZqYBsBAfgB2ThgIlcGfqWHrJQG3lQmgvI/mYAqYpVZAkcU5eU8CBMA5piwJfEq0Pr2pDcGl+0ETpGA3loJp0kU9ZAwukA+o0pMFa/TBz0CgWwA0qG4Y1ByZ8f3yohAJdRI1AvnvBYRgBTRfqC3Kmy6PEA+qB5gHvg+ZYQ1zgBa1wErR7o6XjLAe1wIaL4J3uZTFsDVoAAAAASUVORK5CYII=" id="hurricane-icon" style="width:80px; top:20px; left:-100px;">
+<!-- Floating images (loaded from static folder) -->
+<img src="/static/hurricane_marty.png" id="hurricane-icon">
 
-<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABLUlEQVRIie3UQQqDQBAF0NccGzRyq/6uOaNQs7H/A1+hV3GAWqN3Go2E9pFf8wDkoyQp7Q+QzM5UeS8b6S2zIBbQBrC1iC0oCVshG+BD7M1W/w5yjoEvhAGsY5gTYpVEfDJppKgnwkuR9QbwROwCXcDq6eTFLYQW+g7rEOogL/4O5mij5r+8k8BlgEbMg+iiy40CPwSOBk8k4mBe4kwtAA8y3ACpFhU2q2WPO5WeT1tAaeAYcN9YgBtogGN40BVqS+qN5WJcgGtC+q5vDNrWCG+EDuA8kNP3X6i35mAAAAAElFTkSuQmCC" class="floating-icon" style="width:40px; top:200px; left:-50px;">
-<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABLUlEQVRIie3UQQqDQBAF0NccGzRyq/6uOaNQs7H/A1+hV3GAWqN3Go2E9pFf8wDkoyQp7Q+QzM5UeS8b6S2zIBbQBrC1iC0oCVshG+BD7M1W/w5yjoEvhAGsY5gTYpVEfDJppKgnwkuR9QbwROwCXcDq6eTFLYQW+g7rEOogL/4O5mij5r+8k8BlgEbMg+iiy40CPwSOBk8k4mBe4kwtAA8y3ACpFhU2q2WPO5WeT1tAaeAYcN9YgBtogGN40BVqS+qN5WJcgGtC+q5vDNrWCG+EDuA8kNP3X6i35mAAAAAElFTkSuQmCC" class="floating-icon" style="width:40px; top:300px; left:-150px;">
-<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABGklEQVRIie2UQQrCQBCFv8nK2r+BO0AEaVnZCq2Bx6DldC7vh+qM6biMZBOuOJD7Vg5R+ODTtEoMGVQ2Se1BgJEluIKwG+gN8nFzqS+0+SiJt4m6F6m99yDyODg5r3o3XBxwO/EX8gQp3s4k21vHjA1yKbrI0yP4hOQY0gGZ0EIQ2oHgLxR8yZpAEZ/4R/6A5nX8/1O9L5xL52kKqF8heKXwgy+5bSTwFwp+e6iO7nR5hUAAAAASUVORK5CYII=" class="floating-icon" style="width:35px; top:150px; left:-100px;">
-<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABGklEQVRIie2UQQrCQBCFv8nK2r+BO0AEaVnZCq2Bx6DldC7vh+qM6biMZBOuOJD7Vg5R+ODTtEoMGVQ2Se1BgJEluIKwG+gN8nFzqS+0+SiJt4m6F6m99yDyODg5r3o3XBxwO/EX8gQp3s4k21vHjA1yKbrI0yP4hOQY0gGZ0EIQ2oHgLxR8yZpAEZ/4R/6A5nX8/1O9L5xL52kKqF8heKXwgy+5bSTwFwp+e6iO7nR5hUAAAAASUVORK5CYII=" class="floating-icon" style="width:35px; top:250px; left:-200px;">
+<!-- Sample floating homes and palms -->
+<img src="/static/home.png" class="floating-icon" style="width:40px; top:150px; left:-50px;">
+<img src="/static/home.png" class="floating-icon" style="width:40px; top:250px; left:-150px;">
+<img src="/static/palm.png" class="floating-icon" style="width:35px; top:200px; left:-100px;">
+<img src="/static/palm.png" class="floating-icon" style="width:35px; top:300px; left:-200px;">
 
 <div class="search-box">
   <input type="text" id="query" placeholder="Enter city or ZIP (e.g., Miami over $400k)">
@@ -185,24 +194,24 @@
 <script>
 // Hurricane Marty animation
 const hurricane = document.getElementById("hurricane-icon");
-let posX = -100, posY = 50, dirY = 1;
+let hX = -100, hY = 50, hDirY = 1;
 function moveHurricane() {
-    posX += 1;
-    posY += dirY * 0.5;
-    if(posY > 100 || posY < 20) dirY *= -1;
-    if(posX > window.innerWidth + 100) posX = -100;
-    hurricane.style.left = posX + "px";
-    hurricane.style.top = posY + "px";
+    hX += 1;
+    hY += hDirY * 0.5;
+    if(hY > 100 || hY < 20) hDirY *= -1;
+    if(hX > window.innerWidth + 100) hX = -100;
+    hurricane.style.left = hX + "px";
+    hurricane.style.top = hY + "px";
     requestAnimationFrame(moveHurricane);
 }
 moveHurricane();
 
-// Floating homes and palms
-const floating = document.querySelectorAll('.floating-icon:not(#hurricane-icon)');
-floating.forEach((el, index) => {
+// Floating homes and palms with random loops
+const floating = document.querySelectorAll('.floating-icon');
+floating.forEach(el => {
     let x = parseInt(el.style.left);
     let y = parseInt(el.style.top);
-    let speed = 0.3 + Math.random() * 0.5;
+    let speed = 0.2 + Math.random() * 0.5;
     let dir = Math.random() < 0.5 ? 1 : -1;
     function animate() {
         x += speed;
@@ -215,7 +224,7 @@ floating.forEach((el, index) => {
     animate();
 });
 
-// Search & CSV
+// Search & CSV functions
 async function runSearch() {
   const query = document.getElementById("query").value;
   if(!query) return;
@@ -224,38 +233,41 @@ async function runSearch() {
   document.getElementById("download-btn").style.display = "none";
   document.getElementById("results-count").innerText = "";
 
-  const res = await fetch("/search", {
-    method:"POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({query: query})
-  });
+  try {
+    const res = await fetch("/search", {
+      method:"POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({query: query})
+    });
+    const data = await res.json();
+    document.getElementById("loading").style.display = "none";
+    if(data.error){ alert("Error: "+data.error); return; }
 
-  const data = await res.json();
-  document.getElementById("loading").style.display = "none";
-  if(data.error){ alert("Error: "+data.error); return; }
+    document.getElementById("results-count").innerText = `Showing ${data.preview_count} of ${data.total_count} homes`;
 
-  document.getElementById("results-count").innerText = `Showing ${data.preview_count} of ${data.total_count} homes`;
+    const tbody = document.getElementById("results-body");
+    tbody.innerHTML = "";
+    data.preview.forEach(row=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${row.Address}</td>
+        <td>${row.Latitude}</td>
+        <td>${row.Longitude}</td>
+        <td>$${row.Estimated_Price.toLocaleString()}</td>
+        <td>${row.Distance_from_Landfall}</td>
+      `;
+      tbody.appendChild(tr);
+    });
 
-  const tbody = document.getElementById("results-body");
-  tbody.innerHTML = "";
-  data.preview.forEach(row=>{
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${row.Address}</td>
-      <td>${row.Latitude}</td>
-      <td>${row.Longitude}</td>
-      <td>$${row.Estimated_Price.toLocaleString()}</td>
-      <td>${row.Distance_from_Landfall}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-
-  document.getElementById("results-table").style.display = "table";
-  document.getElementById("download-btn").style.display = "inline-block";
+    document.getElementById("results-table").style.display = "table";
+    document.getElementById("download-btn").style.display = "inline-block";
+  } catch(e) {
+    document.getElementById("loading").style.display = "none";
+    alert("Error: "+e.message);
+  }
 }
 
 function downloadCSV(){ window.location.href="/download"; }
-
 document.getElementById("query").addEventListener("keypress", function(e){
   if(e.key==="Enter"){ runSearch(); }
 });

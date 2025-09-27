@@ -5,22 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Hurricane Marty 🌴🏠🌪️</title>
 <style>
+  /* Full-page beach background using CSS gradient */
   body {
     margin: 0;
     padding: 0;
     font-family: Arial, sans-serif;
     text-align: center;
-    background: url('/static/beach_background.jpg') no-repeat center center fixed;
-    background-size: cover;
     color: #ffffff;
     overflow-x: hidden;
+    background: linear-gradient(to bottom, #87ceeb 0%, #f0e68c 70%, #ffd700 100%);
+    position: relative;
+    height: 100vh;
   }
 
   header {
     padding: 2rem 1rem;
-    background-color: rgba(0,0,0,0.5);
-    position: relative;
-    z-index: 5;
+    background-color: rgba(0,0,0,0.3);
   }
 
   h1 {
@@ -127,20 +127,21 @@
     padding: 1rem;
     font-size: 0.85rem;
     color: #00ffff;
-    background-color: rgba(0,0,0,0.5);
+    background-color: rgba(0,0,0,0.3);
   }
 
-  .floating-icon {
+  /* Floating elements */
+  .floating {
     position: absolute;
-    z-index: 5;
+    font-size: 2rem;
     pointer-events: none;
-    width: 40px;
+    z-index: 10;
   }
 
-  #hurricane-icon {
+  #hurricane {
+    font-size: 4rem;
     position: absolute;
-    z-index: 10;
-    width: 80px;
+    z-index: 20;
   }
 </style>
 </head>
@@ -152,11 +153,11 @@
 </header>
 
 <!-- Floating elements -->
-<img id="hurricane-icon" src="/static/hurricane_marty.png">
-<img class="floating-icon" src="/static/home.png" style="top:150px; left:-50px;">
-<img class="floating-icon" src="/static/home.png" style="top:250px; left:-150px;">
-<img class="floating-icon" src="/static/palm.png" style="top:200px; left:-100px;">
-<img class="floating-icon" src="/static/palm.png" style="top:300px; left:-200px;">
+<div id="hurricane">🌀</div>
+<div class="floating" style="top:150px; left:50px;">🏠</div>
+<div class="floating" style="top:250px; left:150px;">🏠</div>
+<div class="floating" style="top:200px; left:300px;">🌴</div>
+<div class="floating" style="top:300px; left:400px;">🌴</div>
 
 <div class="search-box">
   <input type="text" id="query" placeholder="Enter city or ZIP (e.g., Miami over $400k)">
@@ -191,86 +192,86 @@
 
 <script>
 // Hurricane Marty animation
-const hurricane = document.getElementById("hurricane-icon");
-let hX = -100, hY = 50, hDirY = 1;
+const hurricane = document.getElementById("hurricane");
+let hx = -100, hy = 50, hdir = 1;
 function moveHurricane() {
-    hX += 1;
-    hY += hDirY * 0.5;
-    if(hY > 100 || hY < 20) hDirY *= -1;
-    if(hX > window.innerWidth + 100) hX = -100;
-    hurricane.style.left = hX + "px";
-    hurricane.style.top = hY + "px";
-    requestAnimationFrame(moveHurricane);
+  hx += 1.5;
+  hy += hdir*0.5;
+  if(hy > 100 || hy < 20) hdir *= -1;
+  if(hx > window.innerWidth+50) hx = -50;
+  hurricane.style.left = hx + "px";
+  hurricane.style.top = hy + "px";
+  requestAnimationFrame(moveHurricane);
 }
 moveHurricane();
 
 // Floating homes and palms
-const floating = document.querySelectorAll('.floating-icon');
-floating.forEach(el => {
-    let x = parseInt(el.style.left);
-    let y = parseInt(el.style.top);
-    let speed = 0.2 + Math.random() * 0.5;
-    let dir = Math.random() < 0.5 ? 1 : -1;
-    function animate() {
-        x += speed;
-        y += Math.sin(x/50) * dir;
-        if(x > window.innerWidth + 50) x = -50;
-        el.style.left = x + "px";
-        el.style.top = y + "px";
-        requestAnimationFrame(animate);
-    }
-    animate();
+const floaters = document.querySelectorAll('.floating');
+floaters.forEach(el => {
+  let x = parseInt(el.style.left);
+  let y = parseInt(el.style.top);
+  let speed = 0.2 + Math.random()*0.5;
+  let dir = Math.random()<0.5?1:-1;
+  function animate() {
+    x += speed;
+    y += Math.sin(x/50)*dir;
+    if(x > window.innerWidth+50) x = -50;
+    el.style.left = x + "px";
+    el.style.top = y + "px";
+    requestAnimationFrame(animate);
+  }
+  animate();
 });
 
-// Search & CSV
+// Search & CSV (connects to your Flask endpoints)
 async function runSearch() {
-    const query = document.getElementById("query").value;
-    if(!query) return;
-    document.getElementById("loading").style.display = "block";
-    document.getElementById("results-table").style.display = "none";
-    document.getElementById("download-btn").style.display = "none";
-    document.getElementById("results-count").innerText = "";
+  const query = document.getElementById("query").value;
+  if(!query) return;
+  document.getElementById("loading").style.display="block";
+  document.getElementById("results-table").style.display="none";
+  document.getElementById("download-btn").style.display="none";
+  document.getElementById("results-count").innerText="";
 
-    try {
-        const res = await fetch("/search", {
-            method:"POST",
-            headers: {"Content-Type":"application/json"},
-            body: JSON.stringify({query})
-        });
-        const data = await res.json();
-        document.getElementById("loading").style.display = "none";
-        if(data.error){ alert("Error: "+data.error); return; }
+  try {
+    const res = await fetch("/search", {
+      method:"POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({query})
+    });
+    const data = await res.json();
+    document.getElementById("loading").style.display="none";
+    if(data.error){ alert("Error: "+data.error); return; }
 
-        document.getElementById("results-count").innerText =
-          `Showing ${data.preview_count} of ${data.total_count} homes`;
+    document.getElementById("results-count").innerText =
+      `Showing ${data.preview_count} of ${data.total_count} homes`;
 
-        const tbody = document.getElementById("results-body");
-        tbody.innerHTML = "";
-        data.preview.forEach(row => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-              <td>${row.Address}</td>
-              <td>${row.Latitude}</td>
-              <td>${row.Longitude}</td>
-              <td>$${row.Estimated_Price.toLocaleString()}</td>
-              <td>${row.Distance_from_Landfall}</td>
-            `;
-            tbody.appendChild(tr);
-        });
+    const tbody = document.getElementById("results-body");
+    tbody.innerHTML="";
+    data.preview.forEach(row=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML=`
+        <td>${row.Address}</td>
+        <td>${row.Latitude}</td>
+        <td>${row.Longitude}</td>
+        <td>$${row.Estimated_Price.toLocaleString()}</td>
+        <td>${row.Distance_from_Landfall}</td>
+      `;
+      tbody.appendChild(tr);
+    });
 
-        document.getElementById("results-table").style.display = "table";
-        document.getElementById("download-btn").style.display = "inline-block";
-    } catch(e) {
-        document.getElementById("loading").style.display = "none";
-        alert("Error: "+e.message);
-    }
+    document.getElementById("results-table").style.display="table";
+    document.getElementById("download-btn").style.display="inline-block";
+
+  } catch(e){
+    document.getElementById("loading").style.display="none";
+    alert("Error: "+e.message);
+  }
 }
 
 function downloadCSV(){ window.location.href="/download"; }
-document.getElementById("query").addEventListener("keypress", function(e){
-    if(e.key==="Enter") runSearch();
+document.getElementById("query").addEventListener("keypress", e=>{
+  if(e.key==="Enter") runSearch();
 });
 </script>
-
 </body>
 </html>

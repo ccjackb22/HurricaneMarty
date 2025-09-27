@@ -24,7 +24,7 @@ def search():
         return jsonify({"error": "No query provided"}), 400
 
     try:
-        # Step 1: Parse user query for ZIP code and price
+        # Step 1: Parse query for ZIP code and price
         messages = [
             {"role": "system", "content": "Extract ZIP codes and min/max price from user query."},
             {"role": "user", "content": f'Query: "{query}". Return JSON: zip_codes (list), min_price (int or null), max_price (int or null).'}
@@ -51,10 +51,15 @@ def search():
             locations = osm_response.json()
 
             for loc in locations:
+                address_name = loc.get('display_name')
+                # Skip apartments/condos in OSM name
+                if any(x in address_name.lower() for x in ["apt", "apartment", "condo", "unit"]):
+                    continue
+
                 # Step 3: Ask GPT for 100 rough estimated prices in one batch
                 estimate_prompt = (
-                    f"Provide 100 rough estimated prices in USD for typical residential homes "
-                    f"in the area of {loc.get('display_name')}. Return as a JSON array of numbers only."
+                    f"Provide 100 rough estimated prices in USD for typical single-family homes "
+                    f"in the area of {address_name}. Return as a JSON array of numbers only."
                 )
                 try:
                     price_response = openai.ChatCompletion.create(
@@ -69,13 +74,13 @@ def search():
                     # fallback to random prices
                     prices = [random.randint(200000, 800000) for _ in range(100)]
 
-                # Step 4: Create 100 demo homes per OSM location
+                # Step 4: Create demo homes per OSM location
                 for i, estimated_price in enumerate(prices):
                     if (min_price and estimated_price < min_price) or (max_price and estimated_price > max_price):
                         continue
 
                     final_data.append({
-                        "Address": f"{loc.get('display_name')} Apt {i+1}",
+                        "Address": f"{address_name} #{i+1}",
                         "Latitude": float(loc.get("lat")) + random.uniform(-0.001, 0.001),
                         "Longitude": float(loc.get("lon")) + random.uniform(-0.001, 0.001),
                         "Estimated_Price": estimated_price,

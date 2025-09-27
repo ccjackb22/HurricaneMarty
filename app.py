@@ -35,10 +35,10 @@ def search():
         return jsonify({"error": "No query provided"}), 400
 
     try:
-        # Extract ZIP codes and min/max price from query using GPT
+        # Extract city and min/max price using GPT
         messages = [
-            {"role": "system", "content": "Extract ZIP codes and min/max price from user query."},
-            {"role": "user", "content": f'Query: "{query}". Return JSON: zip_codes (list), min_price (int or null), max_price (int or null).'}
+            {"role": "system", "content": "Extract city name and min/max price from user query."},
+            {"role": "user", "content": f'Query: "{query}". Return JSON: city (str), min_price (int or null), max_price (int or null).'}
         ]
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
@@ -49,75 +49,59 @@ def search():
             parsed = json.loads(response.choices[0].message.content.strip())
         except:
             parsed = {}
-        zip_codes = parsed.get("zip_codes", [])
+        city = parsed.get("city")
         min_price = parsed.get("min_price")
         max_price = parsed.get("max_price")
 
-        if not zip_codes:
-            return jsonify({"error": "No ZIP code found in query"}), 400
+        if not city:
+            return jsonify({"error": "No city found in query"}), 400
 
         final_data = []
 
-        for zip_code in zip_codes:
-            # Step 1: Try OpenStreetMap
-            osm_url = f"https://nominatim.openstreetmap.org/search?postalcode={zip_code}&country=USA&format=json&addressdetails=1"
-            osm_response = requests.get(osm_url, headers={"User-Agent": "HurricaneMarty/1.0"})
-            locations = osm_response.json() if osm_response.status_code == 200 else []
+        # Step 1: Get city polygon from OSM
+        osm_url = f"https://nominatim.openstreetmap.org/search?city={city}&country=USA&format=json&polygon_geojson=1"
+        osm_response = requests.get(osm_url, headers={"User-Agent": "HurricaneMarty/1.0"})
+        city_results = osm_response.json() if osm_response.status_code == 200 else []
 
-            if not locations:
-                # Step 2: GPT fallback
-                fallback_prompt = (
-                    f"Generate 100 single-family home addresses for ZIP code {zip_code} in the USA. "
-                    f"Return JSON array of objects: Address, Estimated_Price (USD), Latitude, Longitude. "
-                    f"Do not include apartments, condos, or units."
-                )
-                try:
-                    gpt_resp = openai.ChatCompletion.create(
-                        model="gpt-3.5-turbo",
-                        messages=[{"role": "user", "content": fallback_prompt}],
-                        temperature=0
-                    )
-                    homes = parse_gpt_json(gpt_resp.choices[0].message.content.strip())
-                except:
-                    homes = []
+        # Step 2: Generate homes
+        if not city_results:
+            # fallback GPT if OSM city not found
+            city_name = city
+        else:
+            city_name = city_results[0].get("display_name", city)
 
-                if not homes:
-                    # last-resort demo homes
-                    homes = []
-                    for i in range(100):
-                        homes.append({
-                            "Address": f"{zip_code} Demo Home #{i+1}",
-                            "Latitude": random.uniform(28, 30),
-                            "Longitude": random.uniform(-82, -80),
-                            "Estimated_Price": random.randint(200000, 800000),
-                            "Distance_from_Landfall": "N/A"
-                        })
+        fallback_prompt = (
+            f"Generate 100 single-family home addresses in {city_name}, USA. "
+            f"Return JSON array of objects: Address, Estimated_Price (USD), Latitude, Longitude. "
+            f"Do not include apartments, condos, or units."
+        )
+        try:
+            gpt_resp = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": fallback_prompt}],
+                temperature=0
+            )
+            homes = parse_gpt_json(gpt_resp.choices[0].message.content.strip())
+        except:
+            homes = []
 
-                # Apply min/max price filter
-                if min_price or max_price:
-                    homes = [h for h in homes if (not min_price or h["Estimated_Price"] >= min_price) and (not max_price or h["Estimated_Price"] <= max_price)]
+        if not homes:
+            # fallback demo homes
+            homes = []
+            for i in range(100):
+                homes.append({
+                    "Address": f"{city_name} Demo Home #{i+1}",
+                    "Latitude": random.uniform(28, 30),
+                    "Longitude": random.uniform(-82, -80),
+                    "Estimated_Price": random.randint(200000, 800000),
+                    "Distance_from_Landfall": "N/A"
+                })
 
-                final_data.extend(homes)
-                continue
+        # Apply min/max price filter
+        if min_price or max_price:
+            homes = [h for h in homes if (not min_price or h["Estimated_Price"] >= min_price) and (not max_price or h["Estimated_Price"] <= max_price)]
 
-            # Process OSM locations (if any)
-            for loc in locations:
-                address_name = loc.get('display_name')
-                if any(x in address_name.lower() for x in ["apt", "apartment", "condo", "unit"]):
-                    continue
-
-                prices = [random.randint(200000, 800000) for _ in range(5)]
-                for i, estimated_price in enumerate(prices):
-                    if (min_price and estimated_price < min_price) or (max_price and estimated_price > max_price):
-                        continue
-                    final_data.append({
-                        "Address": f"{address_name} #{i+1}",
-                        "Latitude": float(loc.get("lat")) + random.uniform(-0.001, 0.001),
-                        "Longitude": float(loc.get("lon")) + random.uniform(-0.001, 0.001),
-                        "Estimated_Price": estimated_price,
-                        "Distance_from_Landfall": "N/A"
-                    })
-
+        final_data.extend(homes)
         export_data_store["current_search"] = final_data
         preview_data = final_data[:5]
 

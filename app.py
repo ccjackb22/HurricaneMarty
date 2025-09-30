@@ -1,28 +1,40 @@
-from flask import Flask, render_template, request, jsonify
-import openai
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
+import subprocess
+import os
 
 app = Flask(__name__)
+CORS(app)
 
-@app.route('/')
-def home():
-    return render_template('index.html')  # <- renders your HTML
-
-@app.route('/ask', methods=['POST'])
+# Existing chat route
+@app.route("/ask", methods=["POST"])
 def ask():
-    data = request.get_json()
-    prompt = data.get("prompt")
+    data = request.json
+    prompt = data.get("prompt", "")
     if not prompt:
-        return jsonify({"error": "No prompt provided"}), 400
+        return jsonify({"answer": "Please provide a prompt."})
+    
+    # Here you would call your AI summarization function
+    # For now, we just echo the prompt
+    response_text = f"Received: {prompt}"
+    return jsonify({"answer": response_text})
 
+# New export CSV route
+@app.route("/export_goodland", methods=["GET"])
+def export_goodland():
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}]
-        )
-        answer = response.choices[0].message.content
-        return jsonify({"answer": answer})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        # Run the script
+        subprocess.run(["python", "save_goodland_data.py"], check=True)
 
-if __name__ == '__main__':
+        # CSV path (adjust if your script saves it elsewhere)
+        csv_path = "goodland_addresses.csv"
+        if os.path.exists(csv_path):
+            return send_file(csv_path, as_attachment=True)
+        else:
+            return jsonify({"error": "CSV not found after running the script."}), 500
+
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": f"Failed to run script: {str(e)}"}), 500
+
+if __name__ == "__main__":
     app.run(debug=True)

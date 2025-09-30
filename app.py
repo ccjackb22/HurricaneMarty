@@ -5,7 +5,6 @@ import googlemaps
 import os
 
 app = Flask(__name__)
-# Hardcoded Google API key
 gmaps = googlemaps.Client(key='AIzaSyDD4r0XTtELhEw2kStXTEVTXS2eUR1xr8A')
 
 @app.route('/', methods=['GET', 'POST'])
@@ -28,5 +27,5 @@ def download(filename):
     return send_file(filename, as_attachment=True)
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 8080))  # Use Heroku's PORT or 8080 locally
+    port = int(os.getenv('PORT', 8080))
     app.run(host='0.0.0.0', port=port)

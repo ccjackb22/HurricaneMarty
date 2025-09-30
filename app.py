@@ -1,47 +1,57 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-import save_goodland_data  # Your script that handles CSV export
-import openai
+import json
 import os
+import openai
 
 app = Flask(__name__)
 CORS(app)
 
-# Make sure your OpenAI API key is set in Render environment variables
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# OpenAI API Key is read from Render environment variables
+openai.api_key = os.environ.get("OPENAI_API_KEY")
 
-@app.route("/")
-def home():
-    return "HurricaneMarty API is running!"
-
-# AI Chat endpoint
+# Route for AI chat
 @app.route("/ask", methods=["POST"])
 def ask():
     data = request.get_json()
     prompt = data.get("prompt", "")
-
     if not prompt.strip():
-        return jsonify({"answer": "Please provide text to summarize."})
-
+        return jsonify({"answer": "Please provide some text to summarize."})
     try:
         response = openai.Completion.create(
-            model="text-davinci-003",
+            engine="text-davinci-003",
             prompt=prompt,
-            max_tokens=300
+            max_tokens=150,
+            temperature=0.7
         )
         answer = response.choices[0].text.strip()
         return jsonify({"answer": answer})
     except Exception as e:
-        return jsonify({"error": str(e)})
+        return jsonify({"answer": f"Error: {str(e)}"})
 
-# Export Goodland CSV endpoint
-@app.route("/export_goodland", methods=["GET"])
-def export_goodland():
+# Route to serve Goodland FL data
+@app.route("/data/goodland", methods=["GET"])
+def goodland_data():
     try:
-        csv_path = save_goodland_data.save_goodland_csv()
-        return send_file(csv_path, as_attachment=True)
+        # Make sure your file is in data/goodland.json
+        with open("data/goodland.json", "r") as f:
+            data = json.load(f)
+        return jsonify(data)
     except Exception as e:
         return jsonify({"error": str(e)})
 
+# Optional: download route
+@app.route("/download/goodland", methods=["GET"])
+def download_goodland():
+    try:
+        return send_from_directory("data", "goodland.json", as_attachment=True)
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+# Home route
+@app.route("/")
+def index():
+    return send_from_directory("templates", "index.html")
+
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000)

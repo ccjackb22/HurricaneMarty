@@ -2,12 +2,13 @@ from flask import Flask, render_template, request, jsonify, send_file
 import os
 import csv
 import io
-import random
 import openai
+import random
 
 app = Flask(__name__)
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 
+# Temporary store for exported CSV data
 export_data_store = {}
 
 # Common street names for demo purposes
@@ -91,4 +92,4 @@ def download_csv():
                      as_attachment=True)
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    app.run(debug=True)

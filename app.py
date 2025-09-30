@@ -1,18 +1,17 @@
 from flask import Flask, render_template, request, jsonify, send_file
-import pandas as pd
-import io
 import os
+import csv
+import io
+import openai
+import pandas as pd
 
 app = Flask(__name__)
+openai.api_key = os.environ.get("OPENAI_API_KEY")
 
-# --- Load Goodland addresses dataset on startup ---
+# Load your Goodland dataset
 DATA_FILE = os.path.join(os.path.dirname(__file__), "goodland_addresses.csv")
-if os.path.exists(DATA_FILE):
-    goodland_df = pd.read_csv(DATA_FILE)
-else:
-    goodland_df = pd.DataFrame(columns=["Address", "Latitude", "Longitude", "Estimated_Price", "Distance_from_Landfall"])
+data_df = pd.read_csv(DATA_FILE)
 
-# Store the current search results for CSV export
 export_data_store = {}
 
 @app.route("/")
@@ -21,43 +20,49 @@ def index():
 
 @app.route("/search", methods=["POST"])
 def search():
-    """
-    Search endpoint: filters Goodland dataset based on user query.
-    Currently supports simple city filter and min_price filter.
-    """
     data = request.get_json()
-    query = data.get("query", "").strip().lower()
-
+    query = data.get("query")
     if not query:
         return jsonify({"error": "No query provided"}), 400
 
     try:
-        # --- Simple parsing from query ---
-        # Example query: "Give me a list of homes in Goodland with min price 500000"
-        city_filter = "goodland"
-        min_price = 0
-        if "min price" in query:
-            parts = query.split("min price")
-            try:
-                min_price = int(''.join(filter(str.isdigit, parts[1])))
-            except:
-                min_price = 0
+        # Use OpenAI to parse query
+        messages = [
+            {"role": "system", "content": "Extract city name and minimum price from user query."},
+            {"role": "user", "content": f'Query: "{query}". Return JSON with "city" and "min_price" (int or null).'}
+        ]
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+            temperature=0
+        )
 
-        # --- Filter dataset ---
-        filtered = goodland_df.copy()
-        # If your CSV has city info, you could filter by it; here we assume all rows are Goodland
-        filtered = filtered[filtered["Estimated_Price"] >= min_price]
+        try:
+            parsed = eval(response.choices[0].message.content.strip())
+        except:
+            parsed = {}
 
-        # --- Preview for UI ---
-        preview_data = filtered.head(5).to_dict(orient="records")
+        city = parsed.get("city", "").lower()
+        min_price = parsed.get("min_price", 0)
 
-        # Store for CSV export
-        export_data_store["current_search"] = filtered.to_dict(orient="records")
+        # Filter dataset
+        filtered = data_df.copy()
+        if city:
+            filtered = filtered[filtered['city'].str.lower() == city]
+        if min_price:
+            filtered = filtered[filtered['Estimated_Price'] >= min_price]
+
+        # Convert to list of dicts
+        final_data = filtered.to_dict(orient="records")
+        export_data_store["current_search"] = final_data
+
+        # Send first 5 results as preview
+        preview_data = final_data[:5]
 
         return jsonify({
             "preview": preview_data,
             "preview_count": len(preview_data),
-            "total_count": len(filtered)
+            "total_count": len(final_data)
         })
 
     except Exception as e:
@@ -65,22 +70,21 @@ def search():
 
 @app.route("/download", methods=["GET"])
 def download_csv():
-    """
-    Downloads the current search results as CSV
-    """
     data = export_data_store.get("current_search", [])
     output = io.StringIO()
-    if data:
-        writer = pd.DataFrame(data).to_csv(output, index=False)
-    else:
-        output.write("Address,Latitude,Longitude,Estimated_Price,Distance_from_Landfall\n")
+    if not data:
+        return jsonify({"error": "No data to export"}), 400
+
+    writer = csv.DictWriter(output, fieldnames=data[0].keys())
+    writer.writeheader()
+    for row in data:
+        writer.writerow(row)
     output.seek(0)
-    return send_file(
-        io.BytesIO(output.getvalue().encode()),
-        mimetype="text/csv",
-        download_name="goodland_addresses.csv",
-        as_attachment=True
-    )
+
+    return send_file(io.BytesIO(output.getvalue().encode()),
+                     mimetype="text/csv",
+                     download_name="goodland_homes.csv",
+                     as_attachment=True)
 
 if __name__ == "__main__":
     app.run(debug=True)

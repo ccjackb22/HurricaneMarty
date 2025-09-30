@@ -1,24 +1,20 @@
-import json
-import pandas as pd
+import csv
 import os
 
-# Load your Goodland GeoJSON
-geojson_path = os.path.join("data", "goodland.geojson")
-with open(geojson_path, "r") as f:
-    data = json.load(f)
+def save_csv():
+    data = [
+        {"address": "123 Main St", "city": "Goodland", "state": "FL", "zip": "34140"},
+        {"address": "456 Oak Ave", "city": "Goodland", "state": "FL", "zip": "34140"},
+        # Add more addresses here
+    ]
+    
+    output_dir = "data"
+    os.makedirs(output_dir, exist_ok=True)
+    csv_path = os.path.join(output_dir, "goodland_addresses.csv")
 
-# Extract addresses
-addresses = []
-for feature in data.get("features", []):
-    props = feature.get("properties", {})
-    addr = props.get("address")  # adjust if needed
-    if addr:
-        addresses.append(addr)
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=data[0].keys())
+        writer.writeheader()
+        writer.writerows(data)
 
-# Save to CSV
-csv_path = "goodland_addresses.csv"
-df = pd.DataFrame(addresses, columns=["Address"])
-df.to_csv(csv_path, index=False)
-
-# Print a simple summary
-print(f"Exported {len(addresses)} addresses to {csv_path}")
+    return csv_path

@@ -1,9 +1,5 @@
 Flask==3.0.0
-gunicorn==22.0.0
-openai==0.28.1
-geopandas==0.13.0
-pandas
-shapely
-fiona
-pyproj
-rtree
+geopandas
+openai
+flask-cors
+gunicorn

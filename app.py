@@ -1,8 +1,10 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, send_file
 from flask_cors import CORS
 import json
 import os
 import openai
+import io
+import csv
 
 app = Flask(__name__)
 CORS(app)
@@ -10,7 +12,7 @@ CORS(app)
 # OpenAI API Key is read from Render environment variables
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 
-# Route for AI chat
+# --- AI chat ---
 @app.route("/ask", methods=["POST"])
 def ask():
     data = request.get_json()
@@ -29,26 +31,47 @@ def ask():
     except Exception as e:
         return jsonify({"answer": f"Error: {str(e)}"})
 
-# Route to serve Goodland FL data
+# --- Goodland data as JSON ---
 @app.route("/data/goodland", methods=["GET"])
 def goodland_data():
     try:
-        # Make sure your file is in data/goodland.json
         with open("data/goodland.json", "r") as f:
             data = json.load(f)
         return jsonify(data)
     except Exception as e:
         return jsonify({"error": str(e)})
 
-# Optional: download route
+# --- Goodland data as CSV download ---
 @app.route("/download/goodland", methods=["GET"])
 def download_goodland():
     try:
-        return send_from_directory("data", "goodland.json", as_attachment=True)
+        # Load the JSON data
+        with open("data/goodland.json", "r") as f:
+            data = json.load(f)
+
+        # Ensure data is a list of dicts
+        if not isinstance(data, list):
+            return jsonify({"error": "Data format invalid"}), 500
+
+        # Write CSV in-memory
+        output = io.StringIO()
+        if data:
+            writer = csv.DictWriter(output, fieldnames=data[0].keys())
+            writer.writeheader()
+            for row in data:
+                writer.writerow(row)
+
+        output.seek(0)
+        return send_file(
+            io.BytesIO(output.getvalue().encode()),
+            mimetype="text/csv",
+            download_name="goodland_export.csv",
+            as_attachment=True
+        )
     except Exception as e:
         return jsonify({"error": str(e)})
 
-# Home route
+# --- Home route ---
 @app.route("/")
 def index():
     return send_from_directory("templates", "index.html")

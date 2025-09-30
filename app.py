@@ -1,21 +1,22 @@
 from flask import Flask, render_template, request, jsonify, send_file
-import os
-import csv
+import geopandas as gpd
 import io
+import csv
 import openai
-import random
 
 app = Flask(__name__)
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 
-export_data_store = {}
+# File paths (repo root)
+ADDRESSES_FILE = "goodland-addresses.geojson"
+BUILDINGS_FILE = "goodland-buildings.geojson"
 
-# Common street names for demo purposes
-STREET_NAMES = [
-    "Maple St", "Oak Ave", "Pine Ln", "Cedar Ct", "Elm St",
-    "Washington Blvd", "Lincoln Rd", "Jefferson Ave", "Madison St",
-    "Adams St", "1st St", "2nd Ave", "3rd St", "4th Ave", "Sunset Blvd"
-]
+# Load GeoJSON data
+addresses = gpd.read_file(ADDRESSES_FILE)
+buildings = gpd.read_file(BUILDINGS_FILE)
+
+# Prepare export storage
+export_data_store = {}
 
 @app.route("/")
 def index():
@@ -29,10 +30,10 @@ def search():
         return jsonify({"error": "No query provided"}), 400
 
     try:
-        # --- Extract city and min price using GPT ---
+        # --- Use OpenAI to extract city from user query ---
         messages = [
-            {"role": "system", "content": "Extract city name and min price from user query."},
-            {"role": "user", "content": f'Query: "{query}". Return JSON with "city" and "min_price" (int or null).'}
+            {"role": "system", "content": "Extract city name from the user query."},
+            {"role": "user", "content": f'Query: "{query}". Return JSON with "city" only.'}
         ]
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
@@ -43,34 +44,37 @@ def search():
             parsed = eval(response.choices[0].message.content.strip())
         except:
             parsed = {}
-        city = parsed.get("city", "Unknown City")
-        min_price = parsed.get("min_price", 0)
+        city = parsed.get("city", "").lower()
 
-        # --- Generate 100+ realistic homes ---
-        final_data = []
-        for i in range(100):
-            house_number = random.randint(100, 9999)
-            street = random.choice(STREET_NAMES)
-            address = f"{house_number} {street}, {city}, USA"
-            estimated_price = random.randint(200000, 2000000)
-            if min_price and estimated_price < min_price:
-                estimated_price += min_price
-            final_data.append({
-                "Address": address,
-                "Latitude": round(random.uniform(28.0, 30.0), 6),
-                "Longitude": round(random.uniform(-82.0, -80.0), 6),
-                "Estimated_Price": estimated_price,
-                "Distance_from_Landfall": "N/A"
+        # --- Filter addresses for that city ---
+        filtered_addresses = addresses[addresses['city'].str.lower() == city]
+
+        # Bounding box for filtered addresses
+        if not filtered_addresses.empty:
+            minx, miny, maxx, maxy = filtered_addresses.total_bounds
+            filtered_buildings = buildings.cx[minx:maxx, miny:maxy]
+        else:
+            filtered_buildings = gpd.GeoDataFrame(columns=buildings.columns)
+
+        # Prepare data for CSV
+        csv_data = []
+        for idx, row in filtered_addresses.iterrows():
+            csv_data.append({
+                "Address": f"{row['number']} {row['street']}, {row['city']}, USA",
+                "Latitude": row.geometry.y,
+                "Longitude": row.geometry.x
             })
 
-        # Store for CSV export
-        export_data_store["current_search"] = final_data
-        preview_data = final_data[:5]
+        # Store for download
+        export_data_store["current_search"] = csv_data
+
+        # Preview first 5 addresses
+        preview_data = csv_data[:5]
 
         return jsonify({
             "preview": preview_data,
             "preview_count": len(preview_data),
-            "total_count": len(final_data)
+            "total_count": len(csv_data)
         })
 
     except Exception as e:
@@ -80,14 +84,14 @@ def search():
 def download_csv():
     data = export_data_store.get("current_search", [])
     output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=["Address", "Latitude", "Longitude", "Estimated_Price", "Distance_from_Landfall"])
+    writer = csv.DictWriter(output, fieldnames=["Address", "Latitude", "Longitude"])
     writer.writeheader()
     for row in data:
         writer.writerow(row)
     output.seek(0)
     return send_file(io.BytesIO(output.getvalue().encode()),
                      mimetype="text/csv",
-                     download_name="homes_export.csv",
+                     download_name="goodland_addresses.csv",
                      as_attachment=True)
 
 if __name__ == "__main__":

@@ -1,21 +1,47 @@
-from flask import Flask, send_file
-import save_goodland_data  # your script
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
+import save_goodland_data  # Your script that handles CSV export
+import openai
+import os
 
 app = Flask(__name__)
+CORS(app)
 
+# Make sure your OpenAI API key is set in Render environment variables
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+@app.route("/")
+def home():
+    return "HurricaneMarty API is running!"
+
+# AI Chat endpoint
 @app.route("/ask", methods=["POST"])
 def ask():
-    from flask import request, jsonify
-    data = request.json
+    data = request.get_json()
     prompt = data.get("prompt", "")
-    # For now, just echo the prompt
-    return jsonify({"answer": f"Received: {prompt}"})
 
+    if not prompt.strip():
+        return jsonify({"answer": "Please provide text to summarize."})
+
+    try:
+        response = openai.Completion.create(
+            model="text-davinci-003",
+            prompt=prompt,
+            max_tokens=300
+        )
+        answer = response.choices[0].text.strip()
+        return jsonify({"answer": answer})
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+# Export Goodland CSV endpoint
 @app.route("/export_goodland", methods=["GET"])
 def export_goodland():
-    # Generate CSV
-    csv_path = save_goodland_data.save_csv()  # Make sure your function returns the file path
-    return send_file(csv_path, as_attachment=True, download_name="goodland_addresses.csv")
+    try:
+        csv_path = save_goodland_data.save_goodland_csv()
+        return send_file(csv_path, as_attachment=True)
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True, host="0.0.0.0", port=5000)

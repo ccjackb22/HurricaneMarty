@@ -2,26 +2,43 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>HurricaneMarty Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HurricaneMarty AI</title>
 </head>
 <body>
     <h1>Test HurricaneMarty AI</h1>
-    <input type="text" id="prompt" placeholder="Type your prompt here" style="width: 300px;">
-    <button onclick="sendPrompt()">Send</button>
-    <p>Response:</p>
-    <pre id="response"></pre>
+
+    <textarea id="promptBox" rows="4" cols="50" placeholder="Type your text here..."></textarea><br>
+    <button id="sendBtn">Send</button>
+
+    <h2>Response:</h2>
+    <pre id="responseBox">{}</pre>
 
     <script>
-        async function sendPrompt() {
-            const prompt = document.getElementById('prompt').value;
-            const res = await fetch('/ask', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt })
-            });
-            const data = await res.json();
-            document.getElementById('response').textContent = JSON.stringify(data, null, 2);
-        }
+        document.getElementById("sendBtn").addEventListener("click", async () => {
+            const prompt = document.getElementById("promptBox").value;
+
+            if (!prompt.trim()) {
+                alert("Please enter some text to summarize.");
+                return;
+            }
+
+            const responseBox = document.getElementById("responseBox");
+            responseBox.textContent = "Loading...";
+
+            try {
+                const res = await fetch("/ask", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt: prompt })
+                });
+
+                const data = await res.json();
+                responseBox.textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+                responseBox.textContent = "Error: " + err.message;
+            }
+        });
     </script>
 </body>
 </html>

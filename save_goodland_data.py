@@ -1,20 +1,33 @@
-import csv
+import pandas as pd
 import os
 
-def save_csv():
-    data = [
-        {"address": "123 Main St", "city": "Goodland", "state": "FL", "zip": "34140"},
-        {"address": "456 Oak Ave", "city": "Goodland", "state": "FL", "zip": "34140"},
-        # Add more addresses here
-    ]
-    
-    output_dir = "data"
-    os.makedirs(output_dir, exist_ok=True)
-    csv_path = os.path.join(output_dir, "goodland_addresses.csv")
+# Make sure you have a "data" folder
+os.makedirs("data", exist_ok=True)
 
-    with open(csv_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=data[0].keys())
-        writer.writeheader()
-        writer.writerows(data)
+def save_goodland_csv():
+    """
+    Reads your Goodland data and saves it as a CSV.
+    Returns the path to the saved CSV.
+    """
+
+    # Example: If you have a JSON or CSV of addresses
+    # Here, we'll create a simple dummy dataset for demonstration
+    data = [
+        {"Address": "123 Main St", "City": "Goodland", "State": "FL", "ZIP": "34140"},
+        {"Address": "456 Oak Ave", "City": "Goodland", "State": "FL", "ZIP": "34140"},
+        {"Address": "789 Pine Rd", "City": "Goodland", "State": "FL", "ZIP": "34140"}
+    ]
+
+    # Convert to pandas DataFrame
+    df = pd.DataFrame(data)
+
+    # Save CSV
+    csv_path = os.path.join("data", "goodland_addresses.csv")
+    df.to_csv(csv_path, index=False)
 
     return csv_path
+
+# Optional: run directly to test
+if __name__ == "__main__":
+    path = save_goodland_csv()
+    print(f"CSV saved at: {path}")

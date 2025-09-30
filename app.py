@@ -1,90 +1,53 @@
-from flask import Flask, render_template, request, jsonify, send_file
 import os
-import csv
-import io
+from flask import Flask, jsonify, request
+from flask_cors import CORS
 import openai
 import pandas as pd
 
 app = Flask(__name__)
-openai.api_key = os.environ.get("OPENAI_API_KEY")
+CORS(app)
 
-# Load your Goodland dataset
-DATA_FILE = os.path.join(os.path.dirname(__file__), "goodland_addresses.csv")
-data_df = pd.read_csv(DATA_FILE)
+# Pull secrets from Render environment variables
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-export_data_store = {}
+# Set OpenAI API key
+openai.api_key = OPENAI_API_KEY
 
 @app.route("/")
-def index():
-    return render_template("index.html")
+def home():
+    return "Hello! HurricaneMarty is running safely."
 
-@app.route("/search", methods=["POST"])
-def search():
-    data = request.get_json()
-    query = data.get("query")
-    if not query:
-        return jsonify({"error": "No query provided"}), 400
+# Example route using Google API key
+@app.route("/example")
+def example():
+    if not GOOGLE_API_KEY:
+        return jsonify({"error": "Google API key not set"}), 500
+
+    # Example: placeholder for your Google API call logic
+    return jsonify({"message": "Google API key loaded successfully!"})
+
+# Example route to test OpenAI usage
+@app.route("/chat", methods=["POST"])
+def chat():
+    if not OPENAI_API_KEY:
+        return jsonify({"error": "OpenAI API key not set"}), 500
+
+    data = request.json
+    user_prompt = data.get("prompt", "")
+
+    if not user_prompt:
+        return jsonify({"error": "No prompt provided"}), 400
 
     try:
-        # Use OpenAI to parse query
-        messages = [
-            {"role": "system", "content": "Extract city name and minimum price from user query."},
-            {"role": "user", "content": f'Query: "{query}". Return JSON with "city" and "min_price" (int or null).'}
-        ]
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-            temperature=0
+            model="gpt-4",
+            messages=[{"role": "user", "content": user_prompt}]
         )
-
-        try:
-            parsed = eval(response.choices[0].message.content.strip())
-        except:
-            parsed = {}
-
-        city = parsed.get("city", "").lower()
-        min_price = parsed.get("min_price", 0)
-
-        # Filter dataset
-        filtered = data_df.copy()
-        if city:
-            filtered = filtered[filtered['city'].str.lower() == city]
-        if min_price:
-            filtered = filtered[filtered['Estimated_Price'] >= min_price]
-
-        # Convert to list of dicts
-        final_data = filtered.to_dict(orient="records")
-        export_data_store["current_search"] = final_data
-
-        # Send first 5 results as preview
-        preview_data = final_data[:5]
-
-        return jsonify({
-            "preview": preview_data,
-            "preview_count": len(preview_data),
-            "total_count": len(final_data)
-        })
-
+        answer = response.choices[0].message["content"]
+        return jsonify({"response": answer})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-@app.route("/download", methods=["GET"])
-def download_csv():
-    data = export_data_store.get("current_search", [])
-    output = io.StringIO()
-    if not data:
-        return jsonify({"error": "No data to export"}), 400
-
-    writer = csv.DictWriter(output, fieldnames=data[0].keys())
-    writer.writeheader()
-    for row in data:
-        writer.writerow(row)
-    output.seek(0)
-
-    return send_file(io.BytesIO(output.getvalue().encode()),
-                     mimetype="text/csv",
-                     download_name="goodland_homes.csv",
-                     as_attachment=True)
 
 if __name__ == "__main__":
     app.run(debug=True)

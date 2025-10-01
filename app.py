@@ -1,92 +1,67 @@
-import os
-import json
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory, render_template
 from flask_cors import CORS
+import json
+import os
 import openai
-
-# Load API key from environment
-openai.api_key = os.getenv("OPENAI_API_KEY")
 
 app = Flask(__name__)
 CORS(app)
 
-# Load Goodland data (just once, at startup)
-GOODLAND_DATA = []
-try:
-    with open("data/goodland.json", "r") as f:
-        GOODLAND_DATA = json.load(f)
-except Exception as e:
-    print("⚠️ Could not load Goodland data:", e)
+# OpenAI API Key from Render environment
+openai.api_key = os.environ.get("OPENAI_API_KEY")
 
+# --- Routes ---
 
 @app.route("/")
-def home():
-    return "HurricaneMarty API is running!"
+def index():
+    return render_template("index.html")
 
-
+# AI chat route
 @app.route("/ask", methods=["POST"])
 def ask():
-    """Main chat endpoint."""
-    data = request.json
-    user_message = data.get("message", "").lower()
-
-    # If user asks for addresses in Goodland
-    if "address" in user_message and "goodland" in user_message:
-        if not GOODLAND_DATA:
-            return jsonify({"reply": "Sorry, no data available for Goodland right now."})
-        addresses = [f"{row['address']}, {row['city']}, {row['state']} {row['zip']}"
-                     for row in GOODLAND_DATA]
-        reply = "Here are the residential addresses I have for Goodland, FL:\n" + "\n".join(addresses)
-        return jsonify({"reply": reply})
-
-    # If they ask about addresses somewhere else
-    if "address" in user_message:
-        return jsonify({"reply": "Right now I only have residential address data for Goodland, Florida."})
-
-    # Otherwise, fall back to OpenAI chat
+    data = request.get_json()
+    prompt = data.get("prompt", "")
+    if not prompt.strip():
+        return jsonify({"answer": "Please provide some text to summarize."})
     try:
-        completion = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are Hurricane Marty, a helpful assistant."},
-                {"role": "user", "content": user_message}
-            ],
-            max_tokens=200
+        response = openai.Completion.create(
+            engine="text-davinci-003",
+            prompt=prompt,
+            max_tokens=150,
+            temperature=0.7
         )
-        reply = completion.choices[0].message["content"].strip()
-        return jsonify({"reply": reply})
+        answer = response.choices[0].text.strip()
+        return jsonify({"answer": answer})
     except Exception as e:
-        return jsonify({"reply": f"⚠️ Error: {e}"}), 500
+        return jsonify({"answer": f"Error: {str(e)}"})
 
+# Serve Goodland addresses
+@app.route("/data/goodland-addresses", methods=["GET"])
+def goodland_addresses():
+    try:
+        with open("goodland-addresses.geojson", "r") as f:
+            data = json.load(f)
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
-@app.route("/data/goodland")
-def get_goodland_data():
-    """Return Goodland JSON directly."""
-    return jsonify(GOODLAND_DATA)
+# Download route
+@app.route("/download/goodland-addresses", methods=["GET"])
+def download_goodland_addresses():
+    try:
+        return send_from_directory(".", "goodland-addresses.geojson", as_attachment=True)
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
-
-@app.route("/download/goodland")
-def download_goodland_csv():
-    """Generate CSV download of Goodland addresses (no pandas)."""
-    from io import StringIO
-    import csv
-    from flask import Response
-
-    if not GOODLAND_DATA:
-        return "No Goodland data available", 404
-
-    # Create CSV in-memory
-    output = StringIO()
-    writer = csv.DictWriter(output, fieldnames=["address", "city", "state", "zip"])
-    writer.writeheader()
-    writer.writerows(GOODLAND_DATA)
-
-    return Response(
-        output.getvalue(),
-        mimetype="text/csv",
-        headers={"Content-Disposition": "attachment;filename=goodland_addresses.csv"}
-    )
-
+# Optional: serve buildings data
+@app.route("/data/goodland-buildings", methods=["GET"])
+def goodland_buildings():
+    try:
+        with open("goodland-buildings.geojson", "r") as f:
+            data = json.load(f)
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

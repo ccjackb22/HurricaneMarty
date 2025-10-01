@@ -2,50 +2,84 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hurricane Marty Demo</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <title>Hurricane Marty Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <style>
-        #map { height: 100vh; width: 100%; }
-        body { margin: 0; padding: 0; }
+        #map { height: 500px; width: 100%; margin-bottom: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        button { margin-right: 10px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
+    <h1>Hurricane Marty Map</h1>
+
+    <div id="dataset-buttons"></div>
     <div id="map"></div>
+    <h2>Preview (first 10 features)</h2>
+    <table id="preview-table">
+        <thead>
+            <tr>
+                <th>Street</th>
+                <th>City</th>
+                <th>District</th>
+                <th>Postcode</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
 
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map').setView([27.5, -82.5], 9); // Centered around Manatee/Sarasota
-
+        const map = L.map('map').setView([27.5, -82.5], 10);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
+            maxZoom: 19
         }).addTo(map);
 
-        // List of GeoJSON files to load
-        const geojsonFiles = [
-            "manatee_addresses",
-            "manatee_buildings",
-            "sarasota_addresses",
-            "sarasota_buildings"
-        ];
+        // Fetch datasets list from server
+        const datasetButtons = document.getElementById('dataset-buttons');
+        const datasets = {{ datasets|tojson }};
 
-        geojsonFiles.forEach(filename => {
-            fetch(`/get_geojson/${filename}`)
-                .then(resp => resp.json())
-                .then(data => {
-                    L.geoJSON(data, {
-                        onEachFeature: function (feature, layer) {
-                            const props = feature.properties || {};
-                            const popupText = `
-                                <b>${props.number || ""} ${props.street || ""}</b><br/>
-                                ${props.city || ""}, ${props.district || ""} ${props.postcode || ""}
-                            `;
-                            layer.bindPopup(popupText);
-                        }
-                    }).addTo(map);
-                })
-                .catch(err => console.error(`Failed to load ${filename}:`, err));
+        datasets.forEach(ds => {
+            const btn = document.createElement('button');
+            btn.textContent = ds;
+            btn.onclick = () => loadDataset(ds);
+            datasetButtons.appendChild(btn);
+
+            const downloadBtn = document.createElement('button');
+            downloadBtn.textContent = `Download ${ds}`;
+            downloadBtn.onclick = () => window.open(`/download/${ds}`, "_blank");
+            datasetButtons.appendChild(downloadBtn);
         });
+
+        let currentLayer = null;
+
+        function loadDataset(dataset) {
+            fetch(`/get_geojson/${dataset}`)
+                .then(r => r.json())
+                .then(data => {
+                    if(currentLayer) map.removeLayer(currentLayer);
+                    currentLayer = L.geoJSON(data).addTo(map);
+                    map.fitBounds(currentLayer.getBounds());
+                });
+
+            fetch(`/preview/${dataset}`)
+                .then(r => r.json())
+                .then(preview => {
+                    const tbody = document.querySelector('#preview-table tbody');
+                    tbody.innerHTML = '';
+                    preview.forEach(f => {
+                        const row = `<tr>
+                            <td>${f.properties.street}</td>
+                            <td>${f.properties.city}</td>
+                            <td>${f.properties.district}</td>
+                            <td>${f.properties.postcode}</td>
+                        </tr>`;
+                        tbody.innerHTML += row;
+                    });
+                });
+        }
     </script>
 </body>
 </html>

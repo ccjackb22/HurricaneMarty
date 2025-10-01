@@ -1,44 +1,166 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HurricaneMarty AI</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hurricane Marty - Goodland FL Data</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: url('/static/hurricane_marty_background.jpg') no-repeat center center fixed;
+        background-size: cover;
+        color: #fff;
+    }
+
+    h1 {
+        text-align: center;
+        margin-top: 20px;
+        text-shadow: 2px 2px 5px #000;
+    }
+
+    #preview, #map-container {
+        max-width: 900px;
+        margin: 20px auto;
+        background-color: rgba(0,0,0,0.6);
+        padding: 15px;
+        border-radius: 10px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        color: #fff;
+    }
+
+    table th, table td {
+        border: 1px solid #fff;
+        padding: 5px;
+        font-size: 0.9rem;
+    }
+
+    table th {
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    #download-btn {
+        display: block;
+        margin: 15px auto;
+        padding: 10px 20px;
+        font-size: 1rem;
+        background-color: #ff4500;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    #map {
+        height: 400px;
+        border-radius: 10px;
+        margin-top: 10px;
+    }
+
+    /* Floating hurricane icons */
+    .hurricane-icon {
+        position: absolute;
+        width: 50px;
+        height: 50px;
+        background: url('/static/hurricane_icon.png') no-repeat center center;
+        background-size: contain;
+        animation: float 15s infinite linear;
+    }
+
+    @keyframes float {
+        0% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-30px) rotate(180deg);}
+        100% { transform: translateY(0px) rotate(360deg);}
+    }
+</style>
 </head>
 <body>
-    <h1>Test HurricaneMarty AI</h1>
 
-    <textarea id="promptBox" rows="4" cols="50" placeholder="Type your text here..."></textarea><br>
-    <button id="sendBtn">Send</button>
+<h1>Hurricane Marty - Goodland FL Residential Data</h1>
 
-    <h2>Response:</h2>
-    <pre id="responseBox">{}</pre>
+<div id="preview">
+    <h2>Preview of Addresses</h2>
+    <table id="data-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Address</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Populated by JS -->
+        </tbody>
+    </table>
+    <button id="download-btn">Download CSV</button>
+</div>
 
-    <script>
-        document.getElementById("sendBtn").addEventListener("click", async () => {
-            const prompt = document.getElementById("promptBox").value;
+<div id="map-container">
+    <h2>Map Preview</h2>
+    <div id="map"></div>
+</div>
 
-            if (!prompt.trim()) {
-                alert("Please enter some text to summarize.");
-                return;
-            }
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+async function loadData() {
+    try {
+        const res = await fetch('/data/goodland');
+        const data = await res.json();
 
-            const responseBox = document.getElementById("responseBox");
-            responseBox.textContent = "Loading...";
+        const tbody = document.querySelector('#data-table tbody');
+        tbody.innerHTML = '';
 
-            try {
-                const res = await fetch("/ask", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ prompt: prompt })
-                });
+        data.slice(0, 10).forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${item.name || ''}</td>
+                            <td>${item.address || ''}</td>
+                            <td>${item.lat || ''}</td>
+                            <td>${item.lng || ''}</td>`;
+            tbody.appendChild(tr);
+        });
 
-                const data = await res.json();
-                responseBox.textContent = JSON.stringify(data, null, 2);
-            } catch (err) {
-                responseBox.textContent = "Error: " + err.message;
+        // Initialize map
+        const map = L.map('map').setView([data[0].lat || 0, data[0].lng || 0], 14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a>'
+        }).addTo(map);
+
+        data.forEach(item => {
+            if(item.lat && item.lng){
+                L.marker([item.lat, item.lng])
+                 .addTo(map)
+                 .bindPopup(`<b>${item.name}</b><br>${item.address}`);
             }
         });
-    </script>
+
+    } catch(err) {
+        console.error(err);
+        alert('Failed to load Goodland data.');
+    }
+}
+
+document.getElementById('download-btn').addEventListener('click', () => {
+    window.location.href = '/download/goodland';
+});
+
+// Randomly add floating icons
+for(let i=0; i<5; i++){
+    const icon = document.createElement('div');
+    icon.classList.add('hurricane-icon');
+    icon.style.top = `${Math.random()*window.innerHeight}px`;
+    icon.style.left = `${Math.random()*window.innerWidth}px`;
+    icon.style.animationDuration = `${10 + Math.random()*10}s`;
+    document.body.appendChild(icon);
+}
+
+loadData();
+</script>
 </body>
 </html>

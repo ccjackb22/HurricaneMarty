@@ -1,53 +1,37 @@
-from flask import Flask, jsonify, send_file
+import os
 import json
-import io
+from flask import Flask, render_template, jsonify
 
 app = Flask(__name__)
 
-ADDRESS_FILE = "goodland-addresses.geojson"
+DATA_FOLDER = os.path.join(os.path.dirname(__file__), "data")
 
-@app.route("/api/addresses", methods=["GET"])
-def get_addresses():
-    try:
-        with open(ADDRESS_FILE, "r") as f:
-            data = json.load(f)
-        return jsonify(data)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+def load_all_geojson():
+    """Load all geojson files from the data folder."""
+    all_data = {}
+    for filename in os.listdir(DATA_FOLDER):
+        if filename.endswith(".geojson"):
+            path = os.path.join(DATA_FOLDER, filename)
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    all_data[filename] = json.load(f)
+            except Exception as e:
+                print(f"Skipping {filename}: {e}")
+    return all_data
 
-@app.route("/api/download/addresses", methods=["GET"])
-def download_addresses():
-    try:
-        with open(ADDRESS_FILE, "r") as f:
-            data = json.load(f)
-        output = io.StringIO()
-        fieldnames = ["number", "street", "unit", "city", "district", "region", "postcode", "id", "longitude", "latitude"]
-        output.write(",".join(fieldnames) + "\n")
-        for feature in data.get("features", []):
-            props = feature.get("properties", {})
-            coords = feature.get("geometry", {}).get("coordinates", [None, None])
-            row = [
-                str(props.get("number", "")),
-                str(props.get("street", "")),
-                str(props.get("unit", "")),
-                str(props.get("city", "")),
-                str(props.get("district", "")),
-                str(props.get("region", "")),
-                str(props.get("postcode", "")),
-                str(props.get("id", "")),
-                str(coords[0]),
-                str(coords[1])
-            ]
-            output.write(",".join(row) + "\n")
-        output.seek(0)
-        return send_file(io.BytesIO(output.getvalue().encode()), mimetype="text/csv",
-                         download_name="addresses.csv", as_attachment=True)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+# Load data once at startup
+geojson_data = load_all_geojson()
 
 @app.route("/")
 def index():
-    return send_file("templates/index.html")
+    return render_template("index.html", files=list(geojson_data.keys()))
+
+@app.route("/data/<filename>")
+def get_data(filename):
+    if filename in geojson_data:
+        return jsonify(geojson_data[filename])
+    else:
+        return jsonify({"error": "File not found"}), 404
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(debug=True)

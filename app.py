@@ -1,13 +1,10 @@
-from flask import Flask, jsonify, send_file, send_from_directory
+from flask import Flask, jsonify, send_file
 import json
 import io
-import os
 
 app = Flask(__name__)
 
-# --- Load addresses ---
 ADDRESS_FILE = "goodland-addresses.geojson"
-BUILDING_FILE = "goodland-buildings.geojson"
 
 @app.route("/api/addresses", methods=["GET"])
 def get_addresses():
@@ -23,7 +20,6 @@ def download_addresses():
     try:
         with open(ADDRESS_FILE, "r") as f:
             data = json.load(f)
-        # Convert GeoJSON to CSV string
         output = io.StringIO()
         fieldnames = ["number", "street", "unit", "city", "district", "region", "postcode", "id", "longitude", "latitude"]
         output.write(",".join(fieldnames) + "\n")
@@ -48,6 +44,10 @@ def download_addresses():
                          download_name="addresses.csv", as_attachment=True)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route("/")
+def index():
+    return send_file("templates/index.html")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

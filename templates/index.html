@@ -3,178 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hurricane Marty - Prototype</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <title>Pelée AI - Your Data Discovery Partner</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
     <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: url('/static/hurricane_marty_Background.jpg') no-repeat center center fixed;
-            background-size: cover;
-            color: #fff;
-        }
-        h1 {
-            text-align: center;
-            margin: 20px 0;
-            text-shadow: 2px 2px 6px #000;
-        }
-        #controls {
-            text-align: center;
-            margin-bottom: 10px;
-        }
-        select, button {
-            padding: 10px;
-            margin: 5px;
-            font-size: 16px;
-            border-radius: 5px;
-        }
-        #preview {
-            max-height: 300px;
-            overflow-y: auto;
-            margin: 10px auto;
-            width: 90%;
-            background-color: rgba(0,0,0,0.6);
-            border-radius: 8px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            color: #fff;
-        }
-        th, td {
-            padding: 5px;
-            border: 1px solid #fff;
-        }
-        th {
-            background-color: rgba(0,0,0,0.7);
-        }
-        #map {
-            height: 400px;
-            margin: 20px auto;
-            width: 90%;
-            border: 2px solid #fff;
-            border-radius: 10px;
-        }
-        .floating-logo {
-            position: fixed;
-            width: 80px;
-            top: 20px;
-            left: 20px;
-            z-index: 1000;
-            animation: float 6s ease-in-out infinite;
-        }
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(20px); }
-            100% { transform: translateY(0px); }
-        }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        #map { width: 100%; height: 90vh; }
     </style>
 </head>
 <body>
-    <img src="/static/Pelee_AI_Logo.png" class="floating-logo">
-    <h1>Hurricane Marty - Prototype</h1>
-
-    <div id="controls">
-        <select id="file-select">
-            <option value="">Select a county/data file</option>
-        </select>
-        <button id="refresh-btn">Refresh Data</button>
-        <button id="download-btn">Download CSV</button>
-    </div>
-
-    <div id="preview"></div>
+    <h1>Pelée AI Map Viewer</h1>
     <div id="map"></div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
     <script>
-        const fileSelect = document.getElementById('file-select');
-        const previewDiv = document.getElementById('preview');
-        const downloadBtn = document.getElementById('download-btn');
-        let currentData = null;
-        let map = L.map('map').setView([27.0, -82.5], 8);
+        var map = L.map('map').setView([27.5, -82.5], 10);
+
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
         }).addTo(map);
-        let markersLayer = L.layerGroup().addTo(map);
 
-        async function loadFileList() {
-            try {
-                const res = await fetch('/'); // returns list of files in JSON from Flask
-                const files = await res.json();
-                fileSelect.innerHTML = '<option value="">Select a county/data file</option>';
-                files.forEach(f => {
-                    const opt = document.createElement('option');
-                    opt.value = f;
-                    opt.textContent = f;
-                    fileSelect.appendChild(opt);
-                });
-            } catch (e) {
-                console.error(e);
-                alert('Failed to load file list.');
+        async function loadGeojson(filename) {
+            const res = await fetch(`/get_geojson/${filename}`);
+            const data = await res.json();
+            if (!data.error) {
+                L.geoJSON(data).addTo(map);
             }
         }
 
-        async function loadData(filename) {
-            if (!filename) return;
-            try {
-                const res = await fetch(`/data/${filename}`);
-                const geojson = await res.json();
-                currentData = geojson.features;
-                renderPreview();
-                renderMap();
-            } catch (e) {
-                console.error(e);
-                alert('Failed to load data.');
-            }
-        }
-
-        function renderPreview() {
-            if (!currentData) return;
-            let html = '<table><tr><th>Number</th><th>Street</th><th>Unit</th><th>City</th><th>District</th><th>Region</th><th>Postcode</th></tr>';
-            currentData.forEach(f => {
-                const p = f.properties;
-                html += `<tr><td>${p.number || ''}</td><td>${p.street || ''}</td><td>${p.unit || ''}</td><td>${p.city || ''}</td><td>${p.district || ''}</td><td>${p.region || ''}</td><td>${p.postcode || ''}</td></tr>`;
-            });
-            html += '</table>';
-            previewDiv.innerHTML = html;
-        }
-
-        function renderMap() {
-            markersLayer.clearLayers();
-            currentData.forEach(f => {
-                const coords = f.geometry.coordinates;
-                if (coords && coords.length === 2) {
-                    L.marker([coords[1], coords[0]]).addTo(markersLayer);
-                }
-            });
-            if (currentData.length > 0) {
-                const firstCoords = currentData[0].geometry.coordinates;
-                map.setView([firstCoords[1], firstCoords[0]], 12);
-            }
-        }
-
-        function downloadCSV() {
-            if (!currentData) return;
-            const rows = currentData.map(f => {
-                const p = f.properties;
-                return [p.number, p.street, p.unit, p.city, p.district, p.region, p.postcode].join(',');
-            });
-            const csv = 'Number,Street,Unit,City,District,Region,Postcode\n' + rows.join('\n');
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'addresses.csv';
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        fileSelect.addEventListener('change', () => loadData(fileSelect.value));
-        downloadBtn.addEventListener('click', downloadCSV);
-        document.getElementById('refresh-btn').addEventListener('click', () => loadData(fileSelect.value));
-
-        // Initial load
-        loadFileList();
+        // Example: load Goodland addresses
+        loadGeojson("goodland-addresses.geojson");
     </script>
 </body>
 </html>

@@ -1,69 +1,179 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Residential Data Prototype</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<style>
-  body { font-family: Arial; background: url('hurricane_marty_Background.jpg'); background-size: cover; }
-  table { border-collapse: collapse; width: 100%; background: rgba(255,255,255,0.9);}
-  th, td { border: 1px solid #999; padding: 8px; text-align: left; }
-  #map { height: 400px; margin-top: 20px; }
-  .download-btn { margin-top: 10px; padding: 10px 20px; background: #ff5722; color: white; border: none; cursor: pointer; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hurricane Marty - Prototype</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: url('../static/hurricane_marty_Background.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+        }
+
+        header {
+            text-align: center;
+            padding: 2rem;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin: 0;
+        }
+
+        #controls {
+            text-align: center;
+            margin: 1rem;
+        }
+
+        button {
+            background-color: #ff6b6b;
+            color: #fff;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            cursor: pointer;
+            font-size: 1rem;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.1);
+        }
+
+        #preview {
+            width: 90%;
+            max-width: 1000px;
+            margin: 2rem auto;
+            background-color: rgba(0,0,0,0.6);
+            padding: 1rem;
+            border-radius: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            color: #fff;
+        }
+
+        th, td {
+            padding: 0.5rem;
+            border-bottom: 1px solid #fff;
+            text-align: left;
+        }
+
+        #map {
+            height: 400px;
+            width: 90%;
+            max-width: 1000px;
+            margin: 2rem auto;
+            border-radius: 10px;
+        }
+
+        .fun-icon {
+            position: fixed;
+            width: 50px;
+            animation: float 4s infinite alternate;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-20px); }
+        }
+    </style>
 </head>
 <body>
-<h2>Residential Data Prototype</h2>
-<div id="table-container"></div>
-<button class="download-btn" onclick="downloadCSV()">Download CSV</button>
-<div id="map"></div>
+    <img src="../static/Pelee_AI_Logo.png" class="fun-icon" style="top:10px; left:10px;">
+    <img src="../static/Pelee_AI_Logo.png" class="fun-icon" style="top:80px; right:50px;">
+    
+    <header>
+        <h1>Hurricane Marty - Prototype</h1>
+    </header>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-async function loadAddresses() {
-    try {
-        const res = await fetch("/api/addresses");
-        const data = await res.json();
-        if(data.error) throw new Error(data.error);
+    <div id="controls">
+        <button onclick="loadData()">Load Addresses</button>
+        <button onclick="downloadCSV()">Download CSV</button>
+    </div>
 
-        const features = data.features || [];
-        let html = '<table><tr><th>Number</th><th>Street</th><th>Unit</th><th>City</th><th>Latitude</th><th>Longitude</th></tr>';
-        features.slice(0, 20).forEach(f => {
-            const props = f.properties;
-            const coords = f.geometry.coordinates;
-            html += `<tr>
-                <td>${props.number||''}</td>
-                <td>${props.street||''}</td>
-                <td>${props.unit||''}</td>
-                <td>${props.city||''}</td>
-                <td>${coords[1]}</td>
-                <td>${coords[0]}</td>
-            </tr>`;
-        });
-        html += '</table>';
-        document.getElementById("table-container").innerHTML = html;
+    <div id="preview">
+        <h2>Preview of Addresses</h2>
+        <table id="addressTable">
+            <thead>
+                <tr>
+                    <th>Number</th>
+                    <th>Street</th>
+                    <th>Unit</th>
+                    <th>City</th>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
 
-        // Map
-        const map = L.map('map').setView([25.925, -81.65], 16);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    <div id="map"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+        let addresses = [];
+        let map = L.map('map').setView([25.92, -81.65], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19
         }).addTo(map);
 
-        features.forEach(f => {
-            const coords = f.geometry.coordinates;
-            L.marker([coords[1], coords[0]]).addTo(map);
-        });
+        function loadData() {
+            fetch('/api/addresses')
+                .then(res => res.json())
+                .then(data => {
+                    addresses = data.features.map(f => ({
+                        number: f.properties.number || '',
+                        street: f.properties.street || '',
+                        unit: f.properties.unit || '',
+                        city: f.properties.city || '',
+                        lat: f.geometry.coordinates[1],
+                        lng: f.geometry.coordinates[0]
+                    }));
 
-    } catch(e) {
-        document.getElementById("table-container").innerHTML = `<p style="color:red;">Failed to load data: ${e.message}</p>`;
-    }
-}
+                    populateTable();
+                    populateMap();
+                })
+                .catch(err => alert("Failed to load data: " + err));
+        }
 
-function downloadCSV() {
-    window.location.href = "/api/download/addresses";
-}
+        function populateTable() {
+            const tbody = document.querySelector('#addressTable tbody');
+            tbody.innerHTML = '';
+            addresses.slice(0, 10).forEach(a => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${a.number}</td>
+                    <td>${a.street}</td>
+                    <td>${a.unit}</td>
+                    <td>${a.city}</td>
+                    <td>${a.lat}</td>
+                    <td>${a.lng}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
 
-loadAddresses();
-</script>
+        function populateMap() {
+            addresses.forEach(a => {
+                L.marker([a.lat, a.lng]).addTo(map)
+                    .bindPopup(`${a.number} ${a.street} ${a.unit || ''}`);
+            });
+        }
+
+        function downloadCSV() {
+            window.location.href = '/api/download/addresses';
+        }
+    </script>
 </body>
 </html>

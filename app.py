@@ -1,34 +1,61 @@
-from flask import Flask, render_template, jsonify
-import requests
+from flask import Flask, render_template, jsonify, send_file
+import os
+import json
 
 app = Flask(__name__)
 
-# Map friendly names to Google Drive download URLs
-GEOJSON_FILES = {
-    "manatee_addresses": "https://drive.google.com/uc?export=download&id=1y63F4l4XDc9s2ZkQbS3Av9ECoN_E3kGE",
-    "manatee_buildings": "https://drive.google.com/uc?export=download&id=1PpOBVFRWbpKACtahpg6nt6c7L7aJ3qEK",
-    "sarasota_addresses": "https://drive.google.com/uc?export=download&id=1CXzVpetX9lfp-3NDpPUmfsaKGD-QxsmR",
-    "sarasota_buildings": "https://drive.google.com/uc?export=download&id=1RvwlfeQFyAF4xrxSGiFEY5E2Luu3m6b-",
-}
+DATA_FOLDER = "data"
+
+def load_all_geojson():
+    geojson_data = {}
+    for filename in os.listdir(DATA_FOLDER):
+        if filename.endswith(".geojson"):
+            path = os.path.join(DATA_FOLDER, filename)
+            features = []
+            with open(path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        try:
+                            features.append(json.loads(line))
+                        except json.JSONDecodeError:
+                            print(f"Skipping line due to JSON error: {line[:50]}...")
+            # Use filename without extension for endpoint
+            key = filename.replace("_simplified.geojson","").replace(".geojson","")
+            geojson_data[key] = {"type":"FeatureCollection","features":features}
+    return geojson_data
+
+geojson_data = load_all_geojson()
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    # Send a list of available datasets to index.html
+    datasets = list(geojson_data.keys())
+    return render_template("index.html", datasets=datasets)
 
-@app.route("/get_geojson/<filename>")
-def get_geojson(filename):
-    url = GEOJSON_FILES.get(filename)
-    if not url:
-        return jsonify({"error": "File not found"}), 404
-    
-    try:
-        resp = requests.get(url)
-        resp.raise_for_status()
-        data = resp.json()
-    except Exception as e:
-        return jsonify({"error": f"Failed to fetch file {filename}", "details": str(e)}), 500
+@app.route("/get_geojson/<dataset>")
+def get_geojson(dataset):
+    data = geojson_data.get(dataset)
+    if data:
+        return jsonify(data)
+    return jsonify({"error": "Dataset not found"}), 404
 
-    return jsonify(data)
+@app.route("/download/<dataset>")
+def download(dataset):
+    # Send the raw file from DATA_FOLDER
+    for filename in os.listdir(DATA_FOLDER):
+        key = filename.replace("_simplified.geojson","").replace(".geojson","")
+        if key == dataset:
+            return send_file(os.path.join(DATA_FOLDER, filename), as_attachment=True)
+    return jsonify({"error": "Dataset not found"}), 404
+
+@app.route("/preview/<dataset>")
+def preview(dataset):
+    data = geojson_data.get(dataset)
+    if data:
+        preview_features = data["features"][:10]
+        return jsonify(preview_features)
+    return jsonify({"error": "Dataset not found"}), 404
 
 if __name__ == "__main__":
     app.run(debug=True)

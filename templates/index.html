@@ -2,84 +2,81 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Hurricane Marty Map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>County Data Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.5/dist/leaflet.css"/>
     <style>
         #map { height: 500px; width: 100%; margin-bottom: 20px; }
-        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        button { margin-right: 10px; margin-bottom: 10px; }
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        select, button { margin-right: 10px; margin-bottom: 10px; }
+        pre { background: #f0f0f0; padding: 10px; overflow-x: auto; max-height: 200px; }
     </style>
 </head>
 <body>
-    <h1>Hurricane Marty Map</h1>
 
-    <div id="dataset-buttons"></div>
-    <div id="map"></div>
-    <h2>Preview (first 10 features)</h2>
-    <table id="preview-table">
-        <thead>
-            <tr>
-                <th>Street</th>
-                <th>City</th>
-                <th>District</th>
-                <th>Postcode</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+<h2>County Data Map</h2>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        const map = L.map('map').setView([27.5, -82.5], 10);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19
-        }).addTo(map);
+<label for="dataset">Choose a dataset:</label>
+<select id="dataset">
+    {% for d in datasets %}
+    <option value="{{ d }}">{{ d }}</option>
+    {% endfor %}
+</select>
+<button onclick="previewData()">Preview 10 lines</button>
+<button onclick="downloadData()">Download Full Dataset</button>
 
-        // Fetch datasets list from server
-        const datasetButtons = document.getElementById('dataset-buttons');
-        const datasets = {{ datasets|tojson }};
+<div id="map"></div>
 
-        datasets.forEach(ds => {
-            const btn = document.createElement('button');
-            btn.textContent = ds;
-            btn.onclick = () => loadDataset(ds);
-            datasetButtons.appendChild(btn);
+<h3>Preview:</h3>
+<pre id="preview"></pre>
 
-            const downloadBtn = document.createElement('button');
-            downloadBtn.textContent = `Download ${ds}`;
-            downloadBtn.onclick = () => window.open(`/download/${ds}`, "_blank");
-            datasetButtons.appendChild(downloadBtn);
-        });
+<script src="https://unpkg.com/leaflet@1.9.5/dist/leaflet.js"></script>
+<script>
+let map = L.map('map').setView([27.5, -82.5], 9); // Default center
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19
+}).addTo(map);
 
-        let currentLayer = null;
+let markers = L.layerGroup().addTo(map);
 
-        function loadDataset(dataset) {
-            fetch(`/get_geojson/${dataset}`)
-                .then(r => r.json())
-                .then(data => {
-                    if(currentLayer) map.removeLayer(currentLayer);
-                    currentLayer = L.geoJSON(data).addTo(map);
-                    map.fitBounds(currentLayer.getBounds());
-                });
+async function fetchGeoJSON(dataset) {
+    const res = await fetch(`/get_geojson/${dataset}`);
+    if (!res.ok) throw new Error('Failed to fetch dataset');
+    return await res.json();
+}
 
-            fetch(`/preview/${dataset}`)
-                .then(r => r.json())
-                .then(preview => {
-                    const tbody = document.querySelector('#preview-table tbody');
-                    tbody.innerHTML = '';
-                    preview.forEach(f => {
-                        const row = `<tr>
-                            <td>${f.properties.street}</td>
-                            <td>${f.properties.city}</td>
-                            <td>${f.properties.district}</td>
-                            <td>${f.properties.postcode}</td>
-                        </tr>`;
-                        tbody.innerHTML += row;
-                    });
-                });
+async function previewData() {
+    const dataset = document.getElementById('dataset').value;
+    try {
+        const res = await fetch(`/preview/${dataset}`);
+        if (!res.ok) throw new Error('Preview fetch failed');
+        const data = await res.json();
+        document.getElementById('preview').textContent = JSON.stringify(data, null, 2);
+        plotPoints(data);
+    } catch (err) {
+        alert(err);
+    }
+}
+
+function plotPoints(features) {
+    markers.clearLayers();
+    features.forEach(f => {
+        if (f.geometry && f.geometry.coordinates) {
+            const [lng, lat] = f.geometry.coordinates;
+            L.marker([lat, lng]).addTo(markers)
+                .bindPopup(`${f.properties.number} ${f.properties.street}, ${f.properties.city}`);
         }
-    </script>
+    });
+}
+
+function downloadData() {
+    const dataset = document.getElementById('dataset').value;
+    window.location.href = `/download/${dataset}`;
+}
+
+// Auto-load first dataset preview
+window.onload = previewData;
+</script>
+
 </body>
 </html>

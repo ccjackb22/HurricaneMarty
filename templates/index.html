@@ -1,91 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hurricane Marty - Goodland FL Data</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<style>
-    body {
-        margin: 0;
-        font-family: Arial, sans-serif;
-        background: url('/static/hurricane_marty_background.jpg') no-repeat center center fixed;
-        background-size: cover;
-        color: #fff;
-    }
-
-    h1 {
-        text-align: center;
-        margin-top: 20px;
-        text-shadow: 2px 2px 5px #000;
-    }
-
-    #preview, #map-container {
-        max-width: 900px;
-        margin: 20px auto;
-        background-color: rgba(0,0,0,0.6);
-        padding: 15px;
-        border-radius: 10px;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        color: #fff;
-    }
-
-    table th, table td {
-        border: 1px solid #fff;
-        padding: 5px;
-        font-size: 0.9rem;
-    }
-
-    table th {
-        background-color: rgba(255, 255, 255, 0.2);
-    }
-
-    #download-btn {
-        display: block;
-        margin: 15px auto;
-        padding: 10px 20px;
-        font-size: 1rem;
-        background-color: #ff4500;
-        color: #fff;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-    }
-
-    #map {
-        height: 400px;
-        border-radius: 10px;
-        margin-top: 10px;
-    }
-
-    /* Floating hurricane icons */
-    .hurricane-icon {
-        position: absolute;
-        width: 50px;
-        height: 50px;
-        background: url('/static/hurricane_icon.png') no-repeat center center;
-        background-size: contain;
-        animation: float 15s infinite linear;
-    }
-
-    @keyframes float {
-        0% { transform: translateY(0px) rotate(0deg); }
-        50% { transform: translateY(-30px) rotate(180deg);}
-        100% { transform: translateY(0px) rotate(360deg);}
-    }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hurricane Marty - Goodland FL Residential Data</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.5/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url('/static/hurricane_marty_Background.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: white;
+            text-align: center;
+        }
+        table {
+            margin: 20px auto;
+            border-collapse: collapse;
+            background-color: rgba(0,0,0,0.6);
+        }
+        th, td {
+            border: 1px solid white;
+            padding: 8px 12px;
+        }
+        #map { height: 400px; width: 80%; margin: 20px auto; border: 2px solid white; }
+        .download-btn {
+            background-color: #ff4444;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        /* Floating hurricane icons */
+        .hurricane-icon {
+            position: fixed;
+            width: 50px;
+            height: 50px;
+            top: calc(50% * var(--i));
+            left: calc(50% * var(--i));
+            animation: float 10s infinite;
+        }
+        @keyframes float {
+            0% {transform: translateY(0);} 
+            50% {transform: translateY(-20px);} 
+            100% {transform: translateY(0);}
+        }
+    </style>
 </head>
 <body>
+    <h1>Hurricane Marty - Goodland FL Residential Data</h1>
+    <h3>Preview of Addresses</h3>
 
-<h1>Hurricane Marty - Goodland FL Residential Data</h1>
-
-<div id="preview">
-    <h2>Preview of Addresses</h2>
-    <table id="data-table">
+    <table id="preview-table">
         <thead>
             <tr>
                 <th>Name</th>
@@ -95,72 +61,47 @@
             </tr>
         </thead>
         <tbody>
-            <!-- Populated by JS -->
+            <tr><td colspan="4">Loading data...</td></tr>
         </tbody>
     </table>
-    <button id="download-btn">Download CSV</button>
-</div>
 
-<div id="map-container">
-    <h2>Map Preview</h2>
+    <a id="download-btn" class="download-btn" href="/download/goodland-addresses">Download CSV</a>
+
     <div id="map"></div>
-</div>
 
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-async function loadData() {
-    try {
-        const res = await fetch('/data/goodland');
-        const data = await res.json();
+    <!-- Floating icons -->
+    <img src="/static/Pelee_AI_Logo.png" class="hurricane-icon" style="--i:1;">
+    <img src="/static/Pelee_AI_Logo.png" class="hurricane-icon" style="--i:1.5;">
 
-        const tbody = document.querySelector('#data-table tbody');
-        tbody.innerHTML = '';
+    <script src="https://unpkg.com/leaflet@1.9.5/dist/leaflet.js"></script>
+    <script>
+        fetch('/data/goodland-addresses')
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.querySelector('#preview-table tbody');
+                tbody.innerHTML = '';
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${row.name}</td><td>${row.address}</td><td>${row.lat}</td><td>${row.lng}</td>`;
+                    tbody.appendChild(tr);
+                });
 
-        data.slice(0, 10).forEach(item => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${item.name || ''}</td>
-                            <td>${item.address || ''}</td>
-                            <td>${item.lat || ''}</td>
-                            <td>${item.lng || ''}</td>`;
-            tbody.appendChild(tr);
-        });
+                // Map
+                const map = L.map('map').setView([data[0].lat, data[0].lng], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19
+                }).addTo(map);
 
-        // Initialize map
-        const map = L.map('map').setView([data[0].lat || 0, data[0].lng || 0], 14);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a>'
-        }).addTo(map);
-
-        data.forEach(item => {
-            if(item.lat && item.lng){
-                L.marker([item.lat, item.lng])
-                 .addTo(map)
-                 .bindPopup(`<b>${item.name}</b><br>${item.address}`);
-            }
-        });
-
-    } catch(err) {
-        console.error(err);
-        alert('Failed to load Goodland data.');
-    }
-}
-
-document.getElementById('download-btn').addEventListener('click', () => {
-    window.location.href = '/download/goodland';
-});
-
-// Randomly add floating icons
-for(let i=0; i<5; i++){
-    const icon = document.createElement('div');
-    icon.classList.add('hurricane-icon');
-    icon.style.top = `${Math.random()*window.innerHeight}px`;
-    icon.style.left = `${Math.random()*window.innerWidth}px`;
-    icon.style.animationDuration = `${10 + Math.random()*10}s`;
-    document.body.appendChild(icon);
-}
-
-loadData();
-</script>
+                data.forEach(row => {
+                    L.marker([row.lat, row.lng]).addTo(map)
+                        .bindPopup(`${row.name}<br>${row.address}`);
+                });
+            })
+            .catch(err => {
+                console.error('Failed to load Goodland data', err);
+                const tbody = document.querySelector('#preview-table tbody');
+                tbody.innerHTML = '<tr><td colspan="4">Failed to load Goodland data.</td></tr>';
+            });
+    </script>
 </body>
 </html>

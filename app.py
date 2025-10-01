@@ -14,11 +14,12 @@ COUNTY_FILES = {
 def fetch_geojson(file_id):
     """Fetch a GeoJSON file from Google Drive by file_id."""
     url = f"https://drive.google.com/uc?export=download&id={file_id}"
-    resp = requests.get(url)
-    if resp.status_code == 200:
+    try:
+        resp = requests.get(url, timeout=15)
+        resp.raise_for_status()
         return resp.json()
-    else:
-        return {"error": f"Failed to fetch file {file_id}"}
+    except Exception as e:
+        return {"error": f"Failed to fetch file {file_id}", "details": str(e)}
 
 @app.route("/")
 def index():
@@ -35,4 +36,5 @@ def get_geojson(dataset):
     return jsonify(data)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Debug only for local runs; Render uses gunicorn
+    app.run(host="0.0.0.0", port=5000, debug=True)

@@ -1,74 +1,53 @@
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
+from flask import Flask, jsonify, send_file, send_from_directory
 import json
+import io
 import os
-import openai
 
 app = Flask(__name__)
-CORS(app)
 
-# --- OpenAI API Key ---
-openai.api_key = os.environ.get("OPENAI_API_KEY")
+# --- Load addresses ---
+ADDRESS_FILE = "goodland-addresses.geojson"
+BUILDING_FILE = "goodland-buildings.geojson"
 
-# --- AI Chat Route ---
-@app.route("/ask", methods=["POST"])
-def ask():
-    data = request.get_json()
-    prompt = data.get("prompt", "")
-    if not prompt.strip():
-        return jsonify({"answer": "Please provide some text to summarize."})
+@app.route("/api/addresses", methods=["GET"])
+def get_addresses():
     try:
-        response = openai.Completion.create(
-            engine="text-davinci-003",
-            prompt=prompt,
-            max_tokens=150,
-            temperature=0.7
-        )
-        answer = response.choices[0].text.strip()
-        return jsonify({"answer": answer})
-    except Exception as e:
-        return jsonify({"answer": f"Error: {str(e)}"})
-
-# --- Goodland Addresses Data Route ---
-@app.route("/data/goodland-addresses", methods=["GET"])
-def goodland_addresses():
-    try:
-        with open("goodland-addresses.geojson", "r") as f:
+        with open(ADDRESS_FILE, "r") as f:
             data = json.load(f)
         return jsonify(data)
     except Exception as e:
-        return jsonify({"error": str(e)})
+        return jsonify({"error": str(e)}), 500
 
-# --- Goodland Addresses Download Route ---
-@app.route("/download/goodland-addresses", methods=["GET"])
-def download_goodland_addresses():
+@app.route("/api/download/addresses", methods=["GET"])
+def download_addresses():
     try:
-        return send_from_directory(".", "goodland-addresses.geojson", as_attachment=True)
-    except Exception as e:
-        return jsonify({"error": str(e)})
-
-# --- Goodland Buildings Data Route (optional) ---
-@app.route("/data/goodland-buildings", methods=["GET"])
-def goodland_buildings():
-    try:
-        with open("goodland-buildings.geojson", "r") as f:
+        with open(ADDRESS_FILE, "r") as f:
             data = json.load(f)
-        return jsonify(data)
+        # Convert GeoJSON to CSV string
+        output = io.StringIO()
+        fieldnames = ["number", "street", "unit", "city", "district", "region", "postcode", "id", "longitude", "latitude"]
+        output.write(",".join(fieldnames) + "\n")
+        for feature in data.get("features", []):
+            props = feature.get("properties", {})
+            coords = feature.get("geometry", {}).get("coordinates", [None, None])
+            row = [
+                str(props.get("number", "")),
+                str(props.get("street", "")),
+                str(props.get("unit", "")),
+                str(props.get("city", "")),
+                str(props.get("district", "")),
+                str(props.get("region", "")),
+                str(props.get("postcode", "")),
+                str(props.get("id", "")),
+                str(coords[0]),
+                str(coords[1])
+            ]
+            output.write(",".join(row) + "\n")
+        output.seek(0)
+        return send_file(io.BytesIO(output.getvalue().encode()), mimetype="text/csv",
+                         download_name="addresses.csv", as_attachment=True)
     except Exception as e:
-        return jsonify({"error": str(e)})
-
-# --- Goodland Buildings Download Route (optional) ---
-@app.route("/download/goodland-buildings", methods=["GET"])
-def download_goodland_buildings():
-    try:
-        return send_from_directory(".", "goodland-buildings.geojson", as_attachment=True)
-    except Exception as e:
-        return jsonify({"error": str(e)})
-
-# --- Home Route ---
-@app.route("/")
-def index():
-    return send_from_directory("templates", "index.html")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

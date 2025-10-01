@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory, render_template
+from flask import Flask, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
 import json
 import os
@@ -7,16 +7,14 @@ import openai
 app = Flask(__name__)
 CORS(app)
 
-# OpenAI API Key from Render environment
+# --- OpenAI API ---
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 
-# --- Routes ---
+# --- Helper to get file path robustly ---
+def get_file_path(filename):
+    return os.path.join(os.path.dirname(__file__), filename)
 
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-# AI chat route
+# --- AI Chat Route ---
 @app.route("/ask", methods=["POST"])
 def ask():
     data = request.get_json()
@@ -35,33 +33,31 @@ def ask():
     except Exception as e:
         return jsonify({"answer": f"Error: {str(e)}"})
 
-# Serve Goodland addresses
+# --- Goodland data route ---
 @app.route("/data/goodland-addresses", methods=["GET"])
 def goodland_addresses():
     try:
-        with open("goodland-addresses.geojson", "r") as f:
+        path = get_file_path("goodland-addresses.geojson")
+        with open(path, "r") as f:
             data = json.load(f)
         return jsonify(data)
     except Exception as e:
         return jsonify({"error": str(e)})
 
-# Download route
+# --- Download Goodland data ---
 @app.route("/download/goodland-addresses", methods=["GET"])
-def download_goodland_addresses():
+def download_goodland():
     try:
-        return send_from_directory(".", "goodland-addresses.geojson", as_attachment=True)
+        path = get_file_path("goodland-addresses.geojson")
+        return send_file(path, as_attachment=True)
     except Exception as e:
         return jsonify({"error": str(e)})
 
-# Optional: serve buildings data
-@app.route("/data/goodland-buildings", methods=["GET"])
-def goodland_buildings():
-    try:
-        with open("goodland-buildings.geojson", "r") as f:
-            data = json.load(f)
-        return jsonify(data)
-    except Exception as e:
-        return jsonify({"error": str(e)})
+# --- Home page ---
+@app.route("/")
+def index():
+    path = get_file_path("templates/index.html")
+    return send_file(path)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

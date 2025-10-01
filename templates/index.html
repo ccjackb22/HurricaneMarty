@@ -1,107 +1,69 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hurricane Marty - Goodland FL Residential Data</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.5/dist/leaflet.css" />
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: url('/static/hurricane_marty_Background.jpg') no-repeat center center fixed;
-            background-size: cover;
-            color: white;
-            text-align: center;
-        }
-        table {
-            margin: 20px auto;
-            border-collapse: collapse;
-            background-color: rgba(0,0,0,0.6);
-        }
-        th, td {
-            border: 1px solid white;
-            padding: 8px 12px;
-        }
-        #map { height: 400px; width: 80%; margin: 20px auto; border: 2px solid white; }
-        .download-btn {
-            background-color: #ff4444;
-            color: white;
-            padding: 10px 20px;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-        /* Floating hurricane icons */
-        .hurricane-icon {
-            position: fixed;
-            width: 50px;
-            height: 50px;
-            top: calc(50% * var(--i));
-            left: calc(50% * var(--i));
-            animation: float 10s infinite;
-        }
-        @keyframes float {
-            0% {transform: translateY(0);} 
-            50% {transform: translateY(-20px);} 
-            100% {transform: translateY(0);}
-        }
-    </style>
+<meta charset="UTF-8">
+<title>Residential Data Prototype</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  body { font-family: Arial; background: url('hurricane_marty_Background.jpg'); background-size: cover; }
+  table { border-collapse: collapse; width: 100%; background: rgba(255,255,255,0.9);}
+  th, td { border: 1px solid #999; padding: 8px; text-align: left; }
+  #map { height: 400px; margin-top: 20px; }
+  .download-btn { margin-top: 10px; padding: 10px 20px; background: #ff5722; color: white; border: none; cursor: pointer; }
+</style>
 </head>
 <body>
-    <h1>Hurricane Marty - Goodland FL Residential Data</h1>
-    <h3>Preview of Addresses</h3>
+<h2>Residential Data Prototype</h2>
+<div id="table-container"></div>
+<button class="download-btn" onclick="downloadCSV()">Download CSV</button>
+<div id="map"></div>
 
-    <table id="preview-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Address</th>
-                <th>Latitude</th>
-                <th>Longitude</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr><td colspan="4">Loading data...</td></tr>
-        </tbody>
-    </table>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+async function loadAddresses() {
+    try {
+        const res = await fetch("/api/addresses");
+        const data = await res.json();
+        if(data.error) throw new Error(data.error);
 
-    <a id="download-btn" class="download-btn" href="/download/goodland-addresses">Download CSV</a>
+        const features = data.features || [];
+        let html = '<table><tr><th>Number</th><th>Street</th><th>Unit</th><th>City</th><th>Latitude</th><th>Longitude</th></tr>';
+        features.slice(0, 20).forEach(f => {
+            const props = f.properties;
+            const coords = f.geometry.coordinates;
+            html += `<tr>
+                <td>${props.number||''}</td>
+                <td>${props.street||''}</td>
+                <td>${props.unit||''}</td>
+                <td>${props.city||''}</td>
+                <td>${coords[1]}</td>
+                <td>${coords[0]}</td>
+            </tr>`;
+        });
+        html += '</table>';
+        document.getElementById("table-container").innerHTML = html;
 
-    <div id="map"></div>
+        // Map
+        const map = L.map('map').setView([25.925, -81.65], 16);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19
+        }).addTo(map);
 
-    <!-- Floating icons -->
-    <img src="/static/Pelee_AI_Logo.png" class="hurricane-icon" style="--i:1;">
-    <img src="/static/Pelee_AI_Logo.png" class="hurricane-icon" style="--i:1.5;">
+        features.forEach(f => {
+            const coords = f.geometry.coordinates;
+            L.marker([coords[1], coords[0]]).addTo(map);
+        });
 
-    <script src="https://unpkg.com/leaflet@1.9.5/dist/leaflet.js"></script>
-    <script>
-        fetch('/data/goodland-addresses')
-            .then(response => response.json())
-            .then(data => {
-                const tbody = document.querySelector('#preview-table tbody');
-                tbody.innerHTML = '';
-                data.forEach(row => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `<td>${row.name}</td><td>${row.address}</td><td>${row.lat}</td><td>${row.lng}</td>`;
-                    tbody.appendChild(tr);
-                });
+    } catch(e) {
+        document.getElementById("table-container").innerHTML = `<p style="color:red;">Failed to load data: ${e.message}</p>`;
+    }
+}
 
-                // Map
-                const map = L.map('map').setView([data[0].lat, data[0].lng], 15);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19
-                }).addTo(map);
+function downloadCSV() {
+    window.location.href = "/api/download/addresses";
+}
 
-                data.forEach(row => {
-                    L.marker([row.lat, row.lng]).addTo(map)
-                        .bindPopup(`${row.name}<br>${row.address}`);
-                });
-            })
-            .catch(err => {
-                console.error('Failed to load Goodland data', err);
-                const tbody = document.querySelector('#preview-table tbody');
-                tbody.innerHTML = '<tr><td colspan="4">Failed to load Goodland data.</td></tr>';
-            });
-    </script>
+loadAddresses();
+</script>
 </body>
 </html>

@@ -1,69 +1,180 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Residential Data Prototype</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<style>
-  body { font-family: Arial; background: url('hurricane_marty_Background.jpg'); background-size: cover; }
-  table { border-collapse: collapse; width: 100%; background: rgba(255,255,255,0.9);}
-  th, td { border: 1px solid #999; padding: 8px; text-align: left; }
-  #map { height: 400px; margin-top: 20px; }
-  .download-btn { margin-top: 10px; padding: 10px 20px; background: #ff5722; color: white; border: none; cursor: pointer; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hurricane Marty - Prototype</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: url('/static/hurricane_marty_Background.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+        }
+        h1 {
+            text-align: center;
+            margin: 20px 0;
+            text-shadow: 2px 2px 6px #000;
+        }
+        #controls {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        select, button {
+            padding: 10px;
+            margin: 5px;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+        #preview {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 10px auto;
+            width: 90%;
+            background-color: rgba(0,0,0,0.6);
+            border-radius: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            color: #fff;
+        }
+        th, td {
+            padding: 5px;
+            border: 1px solid #fff;
+        }
+        th {
+            background-color: rgba(0,0,0,0.7);
+        }
+        #map {
+            height: 400px;
+            margin: 20px auto;
+            width: 90%;
+            border: 2px solid #fff;
+            border-radius: 10px;
+        }
+        .floating-logo {
+            position: fixed;
+            width: 80px;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(20px); }
+            100% { transform: translateY(0px); }
+        }
+    </style>
 </head>
 <body>
-<h2>Residential Data Prototype</h2>
-<div id="table-container"></div>
-<button class="download-btn" onclick="downloadCSV()">Download CSV</button>
-<div id="map"></div>
+    <img src="/static/Pelee_AI_Logo.png" class="floating-logo">
+    <h1>Hurricane Marty - Prototype</h1>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-async function loadAddresses() {
-    try {
-        const res = await fetch("/api/addresses");
-        const data = await res.json();
-        if(data.error) throw new Error(data.error);
+    <div id="controls">
+        <select id="file-select">
+            <option value="">Select a county/data file</option>
+        </select>
+        <button id="refresh-btn">Refresh Data</button>
+        <button id="download-btn">Download CSV</button>
+    </div>
 
-        const features = data.features || [];
-        let html = '<table><tr><th>Number</th><th>Street</th><th>Unit</th><th>City</th><th>Latitude</th><th>Longitude</th></tr>';
-        features.slice(0, 20).forEach(f => {
-            const props = f.properties;
-            const coords = f.geometry.coordinates;
-            html += `<tr>
-                <td>${props.number||''}</td>
-                <td>${props.street||''}</td>
-                <td>${props.unit||''}</td>
-                <td>${props.city||''}</td>
-                <td>${coords[1]}</td>
-                <td>${coords[0]}</td>
-            </tr>`;
-        });
-        html += '</table>';
-        document.getElementById("table-container").innerHTML = html;
+    <div id="preview"></div>
+    <div id="map"></div>
 
-        // Map
-        const map = L.map('map').setView([25.925, -81.65], 16);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const fileSelect = document.getElementById('file-select');
+        const previewDiv = document.getElementById('preview');
+        const downloadBtn = document.getElementById('download-btn');
+        let currentData = null;
+        let map = L.map('map').setView([27.0, -82.5], 8);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
         }).addTo(map);
+        let markersLayer = L.layerGroup().addTo(map);
 
-        features.forEach(f => {
-            const coords = f.geometry.coordinates;
-            L.marker([coords[1], coords[0]]).addTo(map);
-        });
+        async function loadFileList() {
+            try {
+                const res = await fetch('/'); // returns list of files in JSON from Flask
+                const files = await res.json();
+                fileSelect.innerHTML = '<option value="">Select a county/data file</option>';
+                files.forEach(f => {
+                    const opt = document.createElement('option');
+                    opt.value = f;
+                    opt.textContent = f;
+                    fileSelect.appendChild(opt);
+                });
+            } catch (e) {
+                console.error(e);
+                alert('Failed to load file list.');
+            }
+        }
 
-    } catch(e) {
-        document.getElementById("table-container").innerHTML = `<p style="color:red;">Failed to load data: ${e.message}</p>`;
-    }
-}
+        async function loadData(filename) {
+            if (!filename) return;
+            try {
+                const res = await fetch(`/data/${filename}`);
+                const geojson = await res.json();
+                currentData = geojson.features;
+                renderPreview();
+                renderMap();
+            } catch (e) {
+                console.error(e);
+                alert('Failed to load data.');
+            }
+        }
 
-function downloadCSV() {
-    window.location.href = "/api/download/addresses";
-}
+        function renderPreview() {
+            if (!currentData) return;
+            let html = '<table><tr><th>Number</th><th>Street</th><th>Unit</th><th>City</th><th>District</th><th>Region</th><th>Postcode</th></tr>';
+            currentData.forEach(f => {
+                const p = f.properties;
+                html += `<tr><td>${p.number || ''}</td><td>${p.street || ''}</td><td>${p.unit || ''}</td><td>${p.city || ''}</td><td>${p.district || ''}</td><td>${p.region || ''}</td><td>${p.postcode || ''}</td></tr>`;
+            });
+            html += '</table>';
+            previewDiv.innerHTML = html;
+        }
 
-loadAddresses();
-</script>
+        function renderMap() {
+            markersLayer.clearLayers();
+            currentData.forEach(f => {
+                const coords = f.geometry.coordinates;
+                if (coords && coords.length === 2) {
+                    L.marker([coords[1], coords[0]]).addTo(markersLayer);
+                }
+            });
+            if (currentData.length > 0) {
+                const firstCoords = currentData[0].geometry.coordinates;
+                map.setView([firstCoords[1], firstCoords[0]], 12);
+            }
+        }
+
+        function downloadCSV() {
+            if (!currentData) return;
+            const rows = currentData.map(f => {
+                const p = f.properties;
+                return [p.number, p.street, p.unit, p.city, p.district, p.region, p.postcode].join(',');
+            });
+            const csv = 'Number,Street,Unit,City,District,Region,Postcode\n' + rows.join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'addresses.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        fileSelect.addEventListener('change', () => loadData(fileSelect.value));
+        downloadBtn.addEventListener('click', downloadCSV);
+        document.getElementById('refresh-btn').addEventListener('click', () => loadData(fileSelect.value));
+
+        // Initial load
+        loadFileList();
+    </script>
 </body>
 </html>

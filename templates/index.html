@@ -1,74 +1,69 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Region Map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <style>
-        #map { height: 500px; width: 100%; margin-bottom: 20px; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; }
-        th { background-color: #f2f2f2; }
-    </style>
+<meta charset="UTF-8">
+<title>Residential Data Prototype</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  body { font-family: Arial; background: url('hurricane_marty_Background.jpg'); background-size: cover; }
+  table { border-collapse: collapse; width: 100%; background: rgba(255,255,255,0.9);}
+  th, td { border: 1px solid #999; padding: 8px; text-align: left; }
+  #map { height: 400px; margin-top: 20px; }
+  .download-btn { margin-top: 10px; padding: 10px 20px; background: #ff5722; color: white; border: none; cursor: pointer; }
+</style>
 </head>
 <body>
-    <h1>Test Region Map</h1>
-    <div id="map"></div>
-    <button onclick="downloadGeoJSON()">Download GeoJSON</button>
-    <h2>Preview (first 10 rows)</h2>
-    <table id="preview">
-        <thead>
-            <tr>
-                <th>Number</th>
-                <th>Street</th>
-                <th>City</th>
-                <th>District</th>
-                <th>Region</th>
-                <th>Postcode</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+<h2>Residential Data Prototype</h2>
+<div id="table-container"></div>
+<button class="download-btn" onclick="downloadCSV()">Download CSV</button>
+<div id="map"></div>
 
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script>
-        const map = L.map('map').setView([27.5, -82.5], 10);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+async function loadAddresses() {
+    try {
+        const res = await fetch("/api/addresses");
+        const data = await res.json();
+        if(data.error) throw new Error(data.error);
+
+        const features = data.features || [];
+        let html = '<table><tr><th>Number</th><th>Street</th><th>Unit</th><th>City</th><th>Latitude</th><th>Longitude</th></tr>';
+        features.slice(0, 20).forEach(f => {
+            const props = f.properties;
+            const coords = f.geometry.coordinates;
+            html += `<tr>
+                <td>${props.number||''}</td>
+                <td>${props.street||''}</td>
+                <td>${props.unit||''}</td>
+                <td>${props.city||''}</td>
+                <td>${coords[1]}</td>
+                <td>${coords[0]}</td>
+            </tr>`;
+        });
+        html += '</table>';
+        document.getElementById("table-container").innerHTML = html;
+
+        // Map
+        const map = L.map('map').setView([25.925, -81.65], 16);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19
         }).addTo(map);
 
-        async function loadData() {
-            const response = await fetch('/data');
-            const data = await response.json();
+        features.forEach(f => {
+            const coords = f.geometry.coordinates;
+            L.marker([coords[1], coords[0]]).addTo(map);
+        });
 
-            // add points to map
-            data.features.forEach(f => {
-                const coords = f.geometry.coordinates;
-                const props = f.properties;
-                L.marker([coords[1], coords[0]])
-                    .bindPopup(`${props.number} ${props.street}, ${props.city}`)
-                    .addTo(map);
-            });
+    } catch(e) {
+        document.getElementById("table-container").innerHTML = `<p style="color:red;">Failed to load data: ${e.message}</p>`;
+    }
+}
 
-            // preview table
-            const tbody = document.querySelector('#preview tbody');
-            data.features.slice(0, 10).forEach(f => {
-                const tr = document.createElement('tr');
-                ['number', 'street', 'city', 'district', 'region', 'postcode'].forEach(key => {
-                    const td = document.createElement('td');
-                    td.textContent = f.properties[key] || '';
-                    tr.appendChild(td);
-                });
-                tbody.appendChild(tr);
-            });
-        }
+function downloadCSV() {
+    window.location.href = "/api/download/addresses";
+}
 
-        function downloadGeoJSON() {
-            window.location.href = '/download';
-        }
-
-        loadData();
-    </script>
+loadAddresses();
+</script>
 </body>
 </html>

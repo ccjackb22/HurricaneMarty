@@ -1,30 +1,53 @@
-from flask import Flask, render_template, send_from_directory, jsonify
-import os
+from flask import Flask, jsonify, send_file
 import json
+import io
 
 app = Flask(__name__)
 
-DATA_FOLDER = os.path.join(os.path.dirname(__file__), 'data')
-GEOJSON_FILENAME = 'test_region.geojson'  # small file that worked yesterday
+ADDRESS_FILE = "goodland-addresses.geojson"
 
-def load_geojson():
-    path = os.path.join(DATA_FOLDER, GEOJSON_FILENAME)
-    with open(path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+@app.route("/api/addresses", methods=["GET"])
+def get_addresses():
+    try:
+        with open(ADDRESS_FILE, "r") as f:
+            data = json.load(f)
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-geojson_data = load_geojson()
+@app.route("/api/download/addresses", methods=["GET"])
+def download_addresses():
+    try:
+        with open(ADDRESS_FILE, "r") as f:
+            data = json.load(f)
+        output = io.StringIO()
+        fieldnames = ["number", "street", "unit", "city", "district", "region", "postcode", "id", "longitude", "latitude"]
+        output.write(",".join(fieldnames) + "\n")
+        for feature in data.get("features", []):
+            props = feature.get("properties", {})
+            coords = feature.get("geometry", {}).get("coordinates", [None, None])
+            row = [
+                str(props.get("number", "")),
+                str(props.get("street", "")),
+                str(props.get("unit", "")),
+                str(props.get("city", "")),
+                str(props.get("district", "")),
+                str(props.get("region", "")),
+                str(props.get("postcode", "")),
+                str(props.get("id", "")),
+                str(coords[0]),
+                str(coords[1])
+            ]
+            output.write(",".join(row) + "\n")
+        output.seek(0)
+        return send_file(io.BytesIO(output.getvalue().encode()), mimetype="text/csv",
+                         download_name="addresses.csv", as_attachment=True)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-@app.route('/')
+@app.route("/")
 def index():
-    return render_template('index.html')
+    return send_file("templates/index.html")
 
-@app.route('/data')
-def get_data():
-    return jsonify(geojson_data)
-
-@app.route('/download')
-def download():
-    return send_from_directory(DATA_FOLDER, GEOJSON_FILENAME, as_attachment=True)
-
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)

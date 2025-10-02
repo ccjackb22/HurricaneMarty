@@ -2,89 +2,79 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>County Mapping Demo</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <title>Manatee Addresses Preview</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        #map { height: 500px; margin-bottom: 20px; }
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #map { height: 400px; margin-bottom: 20px; }
         table { border-collapse: collapse; width: 100%; margin-top: 10px; }
         th, td { border: 1px solid #ccc; padding: 5px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        button { padding: 10px 20px; margin-bottom: 20px; }
     </style>
 </head>
 <body>
-    <h1>County Mapping Demo</h1>
 
-    <label for="dataset-select">Choose a dataset:</label>
-    <select id="dataset-select">
-        {% for ds in datasets %}
-            <option value="{{ ds }}">{{ ds }}</option>
-        {% endfor %}
-    </select>
-    <button id="download-btn">Download Dataset</button>
+<h2>Manatee Addresses Preview</h2>
+<button onclick="window.location.href='/download/manatee-addresses-county_simplified.geojson'">
+    Download Full GeoJSON
+</button>
 
-    <div id="map"></div>
-    <h2>Preview (first 10 rows)</h2>
-    <table id="preview-table">
-        <thead>
-            <tr>
-                <th>Number</th>
-                <th>Street</th>
-                <th>City</th>
-                <th>District</th>
-                <th>Region</th>
-                <th>Postcode</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+<div id="map"></div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        const map = L.map('map').setView([27.5, -82.5], 9);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
+<h3>Preview (first 10 rows)</h3>
+<table id="preview-table">
+    <thead>
+        <tr>
+            <th>Number</th>
+            <th>Street</th>
+            <th>City</th>
+            <th>District</th>
+            <th>Region</th>
+            <th>Postcode</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
 
-        let markers = [];
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const map = L.map('map').setView([27.5, -82.6], 10); // Center over Manatee
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+    }).addTo(map);
 
-        const datasetSelect = document.getElementById('dataset-select');
-        const previewTableBody = document.querySelector('#preview-table tbody');
-        const downloadBtn = document.getElementById('download-btn');
-
-        async function loadDataset(name) {
-            // Clear existing markers
-            markers.forEach(m => map.removeLayer(m));
-            markers = [];
-            previewTableBody.innerHTML = '';
-
-            // Fetch preview
-            const previewRes = await fetch(`/preview/${encodeURIComponent(name)}`);
-            const previewData = await previewRes.json();
-
-            previewData.forEach(f => {
-                const props = f.properties;
-                const geom = f.geometry;
-                if (geom.type === "Point") {
-                    const marker = L.marker([geom.coordinates[1], geom.coordinates[0]]).addTo(map)
-                        .bindPopup(`${props.number} ${props.street}, ${props.city}`);
-                    markers.push(marker);
-                }
-
-                const row = document.createElement('tr');
-                row.innerHTML = `<td>${props.number}</td><td>${props.street}</td><td>${props.city}</td>
-                                 <td>${props.district}</td><td>${props.region}</td><td>${props.postcode}</td>`;
-                previewTableBody.appendChild(row);
+    fetch('/get_preview')
+        .then(response => response.json())
+        .then(data => {
+            const features = data.features.slice(0, 10); // first 10 for preview table
+            const tbody = document.querySelector("#preview-table tbody");
+            
+            features.forEach(f => {
+                const p = f.properties;
+                
+                // Add marker
+                const [lng, lat] = f.geometry.coordinates;
+                L.marker([lat, lng]).addTo(map)
+                    .bindPopup(`${p.number} ${p.street}, ${p.city}, ${p.region} ${p.postcode}`);
+                
+                // Add row to table
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${p.number}</td>
+                    <td>${p.street}</td>
+                    <td>${p.city}</td>
+                    <td>${p.district}</td>
+                    <td>${p.region}</td>
+                    <td>${p.postcode}</td>
+                `;
+                tbody.appendChild(tr);
             });
-        }
-
-        datasetSelect.addEventListener('change', () => loadDataset(datasetSelect.value));
-        downloadBtn.addEventListener('click', () => {
-            const name = encodeURIComponent(datasetSelect.value);
-            window.open(`/download/${name}`, '_blank');
+        })
+        .catch(err => {
+            console.error("Failed to load preview data:", err);
         });
+</script>
 
-        // Load initial dataset
-        loadDataset(datasetSelect.value);
-    </script>
 </body>
 </html>

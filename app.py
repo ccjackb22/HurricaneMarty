@@ -1,41 +1,30 @@
 from flask import Flask, render_template, send_from_directory, jsonify
-import os, json
+import os
+import json
 
 app = Flask(__name__)
-DATA_FOLDER = "data"
 
-# Load all GeoJSON files from 'data'
-def load_all_geojson():
-    geojson_files = {}
-    for filename in os.listdir(DATA_FOLDER):
-        if filename.endswith(".geojson"):
-            with open(os.path.join(DATA_FOLDER, filename)) as f:
-                geojson_files[filename] = json.load(f)
-    return geojson_files
+DATA_FOLDER = os.path.join(os.path.dirname(__file__), 'data')
+GEOJSON_FILENAME = 'test_region.geojson'  # small file that worked yesterday
 
-geojson_data = load_all_geojson()
+def load_geojson():
+    path = os.path.join(DATA_FOLDER, GEOJSON_FILENAME)
+    with open(path, 'r', encoding='utf-8') as f:
+        return json.load(f)
 
-@app.route("/")
+geojson_data = load_geojson()
+
+@app.route('/')
 def index():
-    # Send the first GeoJSON file for preview/map
-    first_file = list(geojson_data.keys())[0]
-    features = geojson_data[first_file]["features"][:10]  # first 10 rows
-    preview_data = [
-        {
-            "Number": f["properties"]["number"],
-            "Street": f["properties"]["street"],
-            "City": f["properties"]["city"],
-            "District": f["properties"]["district"],
-            "Region": f["properties"]["region"],
-            "Postcode": f["properties"]["postcode"]
-        }
-        for f in features
-    ]
-    return render_template("index.html", geojson_file=first_file, preview_data=preview_data)
+    return render_template('index.html')
 
-@app.route("/data/<filename>")
-def download(filename):
-    return send_from_directory(DATA_FOLDER, filename, as_attachment=True)
+@app.route('/data')
+def get_data():
+    return jsonify(geojson_data)
 
-if __name__ == "__main__":
+@app.route('/download')
+def download():
+    return send_from_directory(DATA_FOLDER, GEOJSON_FILENAME, as_attachment=True)
+
+if __name__ == '__main__':
     app.run(debug=True)

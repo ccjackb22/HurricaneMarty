@@ -11,28 +11,34 @@
     background-size: cover; 
     margin: 0;
     padding: 0;
+    overflow-x: hidden; /* stop side-to-side scrollbar flicker */
   }
 
-  /* Hurricane Marty banner */
+  /* Banner container */
   .hurricane-banner {
-    position: relative; /* anchor point for orbiters */
-    font-size: 3.5em;
-    font-weight: bold;
+    position: relative; 
     text-align: center;
     padding: 60px 10px;
-    color: yellow;
-    text-shadow: 3px 3px 8px red, -3px -3px 8px blue;
     background: rgba(0,0,0,0.6);
     overflow: hidden;
+  }
+
+  /* Shaky + flashy text */
+  .banner-text {
+    display: inline-block;
+    font-size: 3.5em;
+    font-weight: bold;
+    color: yellow;
+    text-shadow: 3px 3px 8px red, -3px -3px 8px blue;
     animation: shake 0.8s infinite, spinColors 5s linear infinite;
   }
 
   @keyframes shake {
-    0% { transform: rotate(1deg) translateX(2px); }
-    25% { transform: rotate(-1deg) translateX(-2px); }
-    50% { transform: rotate(2deg) translateX(2px); }
-    75% { transform: rotate(-2deg) translateX(-2px); }
-    100% { transform: rotate(1deg) translateX(2px); }
+    0% { transform: rotate(1deg); }
+    25% { transform: rotate(-1deg); }
+    50% { transform: rotate(2deg); }
+    75% { transform: rotate(-2deg); }
+    100% { transform: rotate(1deg); }
   }
 
   @keyframes spinColors {
@@ -103,7 +109,7 @@
 </head>
 <body>
 <div class="hurricane-banner">
-  🌊 Hurricane Marty 🌊
+  <span class="banner-text">🌊 Hurricane Marty 🌊</span>
   <div class="orbit">🌪</div>
   <div class="orbit orbit2">🌪</div>
   <div class="orbit orbit3">🌪</div>

@@ -15,11 +15,11 @@
 
   /* Hurricane Marty banner */
   .hurricane-banner {
-    position: relative;
+    position: relative; /* anchor point for orbiters */
     font-size: 3.5em;
     font-weight: bold;
     text-align: center;
-    padding: 40px 10px;
+    padding: 60px 10px;
     color: yellow;
     text-shadow: 3px 3px 8px red, -3px -3px 8px blue;
     background: rgba(0,0,0,0.6);
@@ -48,16 +48,16 @@
     position: absolute;
     top: 50%;
     left: 50%;
-    font-size: 1.5em;
-    transform-origin: -120px 0;
+    font-size: 2em;
+    transform-origin: center -120px;
     animation: orbit 6s linear infinite;
   }
   .orbit2 {
-    transform-origin: 120px 0;
+    transform-origin: center -160px;
     animation: orbit2 8s linear infinite;
   }
   .orbit3 {
-    transform-origin: -160px 0;
+    transform-origin: center -200px;
     animation: orbit3 10s linear infinite;
   }
 
@@ -66,12 +66,12 @@
     100% { transform: rotate(360deg) translateX(120px) rotate(-360deg); }
   }
   @keyframes orbit2 {
-    0% { transform: rotate(0deg) translateX(-120px) rotate(0deg); }
-    100% { transform: rotate(360deg) translateX(-120px) rotate(-360deg); }
-  }
-  @keyframes orbit3 {
     0% { transform: rotate(0deg) translateX(160px) rotate(0deg); }
     100% { transform: rotate(360deg) translateX(160px) rotate(-360deg); }
+  }
+  @keyframes orbit3 {
+    0% { transform: rotate(0deg) translateX(200px) rotate(0deg); }
+    100% { transform: rotate(360deg) translateX(200px) rotate(-360deg); }
   }
 
   table { 

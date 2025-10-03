@@ -2,18 +2,113 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Residential Data Prototype</title>
+<title>Hurricane Marty</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-  body { font-family: Arial; background: url('hurricane_marty_Background.jpg'); background-size: cover; }
-  table { border-collapse: collapse; width: 100%; background: rgba(255,255,255,0.9);}
-  th, td { border: 1px solid #999; padding: 8px; text-align: left; }
+  body { 
+    font-family: Arial; 
+    background: url('hurricane_marty_Background.jpg'); 
+    background-size: cover; 
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Hurricane Marty banner */
+  .hurricane-banner {
+    position: relative;
+    font-size: 3.5em;
+    font-weight: bold;
+    text-align: center;
+    padding: 40px 10px;
+    color: yellow;
+    text-shadow: 3px 3px 8px red, -3px -3px 8px blue;
+    background: rgba(0,0,0,0.6);
+    overflow: hidden;
+    animation: shake 0.8s infinite, spinColors 5s linear infinite;
+  }
+
+  @keyframes shake {
+    0% { transform: rotate(1deg) translateX(2px); }
+    25% { transform: rotate(-1deg) translateX(-2px); }
+    50% { transform: rotate(2deg) translateX(2px); }
+    75% { transform: rotate(-2deg) translateX(-2px); }
+    100% { transform: rotate(1deg) translateX(2px); }
+  }
+
+  @keyframes spinColors {
+    0% { color: yellow; }
+    25% { color: cyan; }
+    50% { color: lime; }
+    75% { color: orange; }
+    100% { color: yellow; }
+  }
+
+  /* Orbiting hurricane emojis */
+  .orbit {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    font-size: 1.5em;
+    transform-origin: -120px 0;
+    animation: orbit 6s linear infinite;
+  }
+  .orbit2 {
+    transform-origin: 120px 0;
+    animation: orbit2 8s linear infinite;
+  }
+  .orbit3 {
+    transform-origin: -160px 0;
+    animation: orbit3 10s linear infinite;
+  }
+
+  @keyframes orbit {
+    0% { transform: rotate(0deg) translateX(120px) rotate(0deg); }
+    100% { transform: rotate(360deg) translateX(120px) rotate(-360deg); }
+  }
+  @keyframes orbit2 {
+    0% { transform: rotate(0deg) translateX(-120px) rotate(0deg); }
+    100% { transform: rotate(360deg) translateX(-120px) rotate(-360deg); }
+  }
+  @keyframes orbit3 {
+    0% { transform: rotate(0deg) translateX(160px) rotate(0deg); }
+    100% { transform: rotate(360deg) translateX(160px) rotate(-360deg); }
+  }
+
+  table { 
+    border-collapse: collapse; 
+    width: 100%; 
+    background: rgba(255,255,255,0.9);
+    margin-top: 20px;
+  }
+  th, td { 
+    border: 1px solid #999; 
+    padding: 8px; 
+    text-align: left; 
+  }
   #map { height: 400px; margin-top: 20px; }
-  .download-btn { margin-top: 10px; padding: 10px 20px; background: #ff5722; color: white; border: none; cursor: pointer; }
+  .download-btn { 
+    margin-top: 10px; 
+    padding: 10px 20px; 
+    background: #ff5722; 
+    color: white; 
+    border: none; 
+    cursor: pointer; 
+    font-size: 1.1em;
+    border-radius: 8px;
+  }
+  .download-btn:hover {
+    background: #e64a19;
+  }
 </style>
 </head>
 <body>
-<h2>Residential Data Prototype</h2>
+<div class="hurricane-banner">
+  🌊 Hurricane Marty 🌊
+  <div class="orbit">🌪</div>
+  <div class="orbit orbit2">🌪</div>
+  <div class="orbit orbit3">🌪</div>
+</div>
+
 <div id="table-container"></div>
 <button class="download-btn" onclick="downloadCSV()">Download CSV</button>
 <div id="map"></div>
